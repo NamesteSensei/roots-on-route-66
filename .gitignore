@@ -1,0 +1,24 @@
+# Python virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code / editor files
+.vscode/
+
+# macOS files
+.DS_Store
+
+# Frontend dependencies
+node_modules/
+
+# Next.js build output
+.next/
+
+# Logs
+*.log
