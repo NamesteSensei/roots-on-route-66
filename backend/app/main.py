@@ -4,6 +4,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config.mongodb import create_indexes
 from app.routes import plants, users
@@ -46,13 +47,10 @@ async def startup_event() -> None:
     await create_indexes()
 
 
-@app.get("/")
-async def read_root() -> dict[str, str]:
-    """Return a basic API welcome message."""
-    return {"message": "Roots on Route 66 API is running."}
-
-
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Return service health status for deployment checks."""
     return {"status": "healthy", "service": APP_NAME}
+
+
+app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")

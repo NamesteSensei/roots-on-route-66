@@ -97,7 +97,7 @@ function showToast(message, type = 'success', duration = 4000) {
 
 // ========== Authentication ==========
 async function login(email, password) {
-    const response = await fetch("http://localhost:8001/users/login", {
+    const response = await fetch("/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -115,7 +115,7 @@ async function login(email, password) {
 }
 
 async function register(userData) {
-    const response = await fetch("http://localhost:8001/users/", {
+    const response = await fetch("/users/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ async function createPlant(varietyId, parentId = null) {
     const variety = SWEET_POTATO_VARIETIES.find(v => v.id === varietyId);
     if (!variety) return null;
 
-    const response = await fetch("http://localhost:8001/plants/", {
+    const response = await fetch("/plants/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -180,20 +180,20 @@ async function getChildPlants(plantId) {
 }
 
 async function getPlantById(plantId) {
-    const response = await fetch(`http://localhost:8001/plants/${plantId}`);
+    const response = await fetch(`/plants/${plantId}`);
     if (!response.ok) return null;
     return await response.json();
 }
 
 async function getUserPlants() {
     if (!currentUser) return [];
-    const response = await fetch(`http://localhost:8001/users/${currentUser.id}/plants`);
+    const response = await fetch(`/users/${currentUser.id}/plants`);
     if (!response.ok) return [];
     return await response.json();
 }
 
 async function updatePlant(plantId, updates) {
-    const response = await fetch(`http://localhost:8001/plants/${plantId}`, {
+    const response = await fetch(`/plants/${plantId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
@@ -213,7 +213,7 @@ async function updatePlantStatus(plantId, newStatus) {
 }
 
 async function deletePlant(plantId) {
-    const response = await fetch(`http://localhost:8001/plants/${plantId}`, {
+    const response = await fetch(`/plants/${plantId}`, {
         method: "DELETE"
     });
 
@@ -253,7 +253,7 @@ function deleteMedia(mediaId) {
 async function updateUserProfile(updates) {
     if (!currentUser) return false;
 
-    const response = await fetch(`http://localhost:8001/users/${currentUser.id}`, {
+    const response = await fetch(`/users/${currentUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1440,7 +1440,7 @@ window.saveProfile = async () => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const uploadResponse = await fetch(`http://localhost:8001/users/${currentUser.id}/profile-picture`, {
+        const uploadResponse = await fetch(`/users/${currentUser.id}/profile-picture`, {
             method: "POST",
             body: formData
         });
