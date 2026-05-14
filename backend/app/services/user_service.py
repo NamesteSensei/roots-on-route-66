@@ -1,115 +1,208 @@
-from app.config.mongodb import users_collection
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
-from app.models.user import UserModel
-from pymongo.errors import DuplicateKeyError
-from bson import ObjectId
-from bson.errors import InvalidId
-from datetime import datetime
+"""Business logic for user operations."""
+
+from datetime import datetime, timedelta
+from typing import Optional
+
 import bcrypt
+import secrets
+from bson import ObjectId
+from pymongo import ReturnDocument
 
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode(), salt).decode()
+from app.config.mongodb import users_collection
+from app.schemas.user import (
+    PasswordResetComplete,
+    PasswordResetRequest,
+    UserChangePassword,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    UserUpdate,
+)
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+RESET_TOKEN_EXPIRATION_MINUTES = 60
+
+
+def _document_to_response(document: dict) -> UserResponse:
+    """Convert a MongoDB user document into a response schema."""
+    document["_id"] = str(document["_id"])
+    return UserResponse(**document)
+
+
+def _get_object_id(value: str) -> ObjectId:
+    """Convert a string ID into a MongoDB ObjectId."""
+    if not ObjectId.is_valid(value):
+        raise ValueError("Invalid user ID.")
+    return ObjectId(value)
+
+
+def _hash_password(password: str) -> str:
+    """Hash a plain-text password."""
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
+
+
+def _verify_password(password: str, hashed_password: str) -> bool:
+    """Verify a password against a stored hash."""
+    return bcrypt.checkpw(
+        password.encode("utf-8"),
+        hashed_password.encode("utf-8"),
+    )
+
 
 async def create_user(user_data: UserCreate) -> UserResponse:
+    """Create a new user."""
+    existing_email = await users_collection.find_one({"email": user_data.email})
+    if existing_email:
+        raise ValueError("A user with this email already exists.")
+
+    existing_username = await users_collection.find_one(
+        {"username": user_data.username}
+    )
+    if existing_username:
+        raise ValueError("A user with this username already exists.")
+
     now = datetime.utcnow()
+    document = user_data.dict(exclude={"password"})
+    document["password"] = _hash_password(user_data.password)
+    document["role"] = "user"
+    document["created_at"] = now
+    document["updated_at"] = now
 
-    user_model = UserModel(
-        name=user_data.name,
-        username=user_data.username,
-        zip_code=user_data.zip_code,
-        email=user_data.email,
-        password=hash_password(user_data.password),
-        bio=user_data.bio,
-        profile_picture=user_data.profile_picture,
-        plants=[],
-        created_at=now,
-        updated_at=now
+    result = await users_collection.insert_one(document)
+    saved = await users_collection.find_one({"_id": result.inserted_id})
+
+    return _document_to_response(saved)
+
+
+async def authenticate_user(credentials: UserLogin) -> UserResponse:
+    """Authenticate a user by email and password."""
+    user = await users_collection.find_one({"email": credentials.email})
+
+    if not user:
+        raise ValueError("Invalid email or password.")
+
+    if not _verify_password(credentials.password, user["password"]):
+        raise ValueError("Invalid email or password.")
+
+    return _document_to_response(user)
+
+
+async def get_user(user_id: str) -> Optional[UserResponse]:
+    """Get one user by ID."""
+    object_id = _get_object_id(user_id)
+    user = await users_collection.find_one({"_id": object_id})
+
+    if not user:
+        return None
+
+    return _document_to_response(user)
+
+
+async def update_user(
+    user_id: str,
+    updates: UserUpdate,
+) -> Optional[UserResponse]:
+    """Update a user's editable profile fields."""
+    object_id = _get_object_id(user_id)
+    update_data = updates.dict(exclude_unset=True)
+
+    if not update_data:
+        return await get_user(user_id)
+
+    update_data["updated_at"] = datetime.utcnow()
+
+    updated = await users_collection.find_one_and_update(
+        {"_id": object_id},
+        {"$set": update_data},
+        return_document=ReturnDocument.AFTER,
     )
 
-    try:
-        result = await users_collection.insert_one(user_model.dict())
-        return UserResponse(id=str(result.inserted_id), **user_model.dict())
-    except DuplicateKeyError:
-        raise ValueError("Email already exists")
+    if not updated:
+        return None
 
-async def login_user(email: str, password: str) -> UserResponse | None:
-    user = await users_collection.find_one({"email": email})
+    return _document_to_response(updated)
+
+
+async def change_password(
+    user_id: str,
+    payload: UserChangePassword,
+) -> None:
+    """Change a user's password after checking the old password."""
+    object_id = _get_object_id(user_id)
+    user = await users_collection.find_one({"_id": object_id})
+
     if not user:
-        return None
-    if not verify_password(password, user["password"]):
-        return None
-    user["id"] = str(user["_id"])
-    user.setdefault("plants", [])
-    return UserResponse(**user)
+        raise ValueError("User not found.")
 
-async def get_user(user_id: str) -> UserResponse | None:
-    try:
-        oid = ObjectId(user_id)
-    except InvalidId:
-        return None
-
-    user = await users_collection.find_one({"_id": oid})
-    if not user:
-        return None
-
-    user_model = UserModel(**{k: v for k, v in user.items() if k != "_id"})
-    return UserResponse(id=str(user["_id"]), **user_model.dict())
-
-async def update_user(user_id: str, update_data: UserUpdate) -> UserResponse | None:
-    try:
-        oid = ObjectId(user_id)
-    except InvalidId:
-        return None
-
-    existing = await users_collection.find_one({"_id": oid})
-    if not existing:
-        return None
-
-    changes = {k: v for k, v in update_data.dict().items() if v is not None}
-
-    updated_model = UserModel(**{
-        **{k: v for k, v in existing.items() if k != "_id"},
-        **changes,
-        "updated_at": datetime.utcnow()
-    })
+    if not _verify_password(payload.old_password, user["password"]):
+        raise ValueError("Old password is incorrect.")
 
     await users_collection.update_one(
-        {"_id": oid},
-        {"$set": updated_model.dict()}
+        {"_id": object_id},
+        {
+            "$set": {
+                "password": _hash_password(payload.new_password),
+                "updated_at": datetime.utcnow(),
+            }
+        },
     )
-    return await get_user(user_id)
 
-async def change_password(user_id: str, old_password: str, new_password: str) -> bool:
-    try:
-        oid = ObjectId(user_id)
-    except InvalidId:
-        return False
 
-    user = await users_collection.find_one({"_id": oid})
+async def request_password_reset(payload: PasswordResetRequest) -> str:
+    """Create a password reset token for a user."""
+    user = await users_collection.find_one({"email": payload.email})
+
     if not user:
-        return False
+        raise ValueError("Email not found.")
 
-    if not verify_password(old_password, user["password"]):
-        return False
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(
+        minutes=RESET_TOKEN_EXPIRATION_MINUTES
+    )
 
     await users_collection.update_one(
-        {"_id": oid},
-        {"$set": {
-            "password": hash_password(new_password),
-            "updated_at": datetime.utcnow()
-        }}
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "reset_token": token,
+                "reset_token_expires_at": expires_at,
+                "updated_at": datetime.utcnow(),
+            }
+        },
     )
-    return True
 
-async def remove_user(user_id: str) -> bool:
-    try:
-        oid = ObjectId(user_id)
-    except InvalidId:
-        return False
+    return token
 
-    result = await users_collection.delete_one({"_id": oid})
-    return result.deleted_count == 1
+
+async def reset_password(payload: PasswordResetComplete) -> None:
+    """Reset a user's password using a valid reset token."""
+    now = datetime.utcnow()
+    user = await users_collection.find_one(
+        {
+            "reset_token": payload.token,
+            "reset_token_expires_at": {"$gt": now},
+        }
+    )
+
+    if not user:
+        raise ValueError("Invalid or expired reset token.")
+
+    await users_collection.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "password": _hash_password(payload.new_password),
+                "updated_at": now,
+            },
+            "$unset": {
+                "reset_token": "",
+                "reset_token_expires_at": "",
+            },
+        },
+    )
+
+
+async def delete_user(user_id: str) -> None:
+    """Delete a user by ID."""
+    object_id = _get_object_id(user_id)
+    await users_collection.delete_one({"_id": object_id})
