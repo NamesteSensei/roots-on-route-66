@@ -1,61 +1,115 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
-from app.schemas.user import UserCreate, UserResponse, UserLogin, UserUpdate, UserChangePassword
-from app.schemas.plant import PlantResponse
-from app.services.user_service import create_user, get_user, update_user, login_user, change_password, remove_user
-from app.services.plant_service import get_plants_by_user
+"""API routes for user operations."""
 
-router = APIRouter(prefix="/users", tags=["Users"])
+from fastapi import APIRouter, HTTPException, status
 
-# user signup
-@router.post("/", response_model=UserResponse)
-async def signup(user_data: UserCreate):
+from app.schemas.user import (
+    PasswordResetComplete,
+    PasswordResetRequest,
+    UserChangePassword,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    UserUpdate,
+)
+from app.services import user_service
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register_user(user: UserCreate) -> UserResponse:
+    """Register a new user."""
     try:
-        return await create_user(user_data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return await user_service.create_user(user)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
-# user login
+
 @router.post("/login", response_model=UserResponse)
-async def login(credentials: UserLogin):
-    user = await login_user(credentials.email, credentials.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    return user
+async def login_user(credentials: UserLogin) -> UserResponse:
+    """Log in an existing user."""
+    try:
+        return await user_service.authenticate_user(credentials)
+    except ValueError as error:
+        raise HTTPException(status_code=401, detail=str(error)) from error
 
-# get user
+
 @router.get("/{user_id}", response_model=UserResponse)
-async def read_user(user_id: str):
-    user = await get_user(user_id)
+async def read_user(user_id: str) -> UserResponse:
+    """Read one user by ID."""
+    try:
+        user = await user_service.get_user(user_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found.")
+
     return user
 
-# update user
-@router.put("/{user_id}", response_model=UserResponse)
-async def edit_user(user_id: str, update_data: UserUpdate):
-    user = await update_user(user_id, update_data)
+
+@router.patch("/{user_id}", response_model=UserResponse)
+async def update_user(user_id: str, updates: UserUpdate) -> UserResponse:
+    """Update one user by ID."""
+    try:
+        user = await user_service.update_user(user_id, updates)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found.")
+
     return user
 
-# change password
-@router.put("/{user_id}/password")
-async def update_password(user_id: str, data: UserChangePassword):
-    success = await change_password(user_id, data.old_password, data.new_password)
-    if not success:
-        raise HTTPException(status_code=400, detail="Invalid current password or user not found")
-    return {"message": "Password updated"}
 
-# delete user
-@router.delete("/{user_id}")
-async def delete_user(user_id: str):
-    success = await remove_user(user_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User deleted"}
+@router.post(
+    "/{user_id}/change-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def change_password(
+    user_id: str,
+    payload: UserChangePassword,
+) -> None:
+    """Change a user's password."""
+    try:
+        await user_service.change_password(user_id, payload)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
-# get all plants for a user
-@router.get("/{user_id}/plants", response_model=List[PlantResponse])
-async def get_user_plants(user_id: str):
-    return await get_plants_by_user(user_id)
+
+@router.post("/reset-password/request")
+async def request_password_reset(
+    payload: PasswordResetRequest,
+) -> dict[str, str]:
+    """Request a password reset token."""
+    try:
+        token = await user_service.request_password_reset(payload)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    return {"reset_token": token}
+
+
+@router.post(
+    "/reset-password/complete",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def complete_password_reset(payload: PasswordResetComplete) -> None:
+    """Complete a password reset."""
+    try:
+        await user_service.reset_password(payload)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: str) -> None:
+    """Delete one user by ID."""
+    try:
+        await user_service.delete_user(user_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
