@@ -1,365 +1,158 @@
-from app.config.mongodb import db, users_collection
-from app.schemas.plant import PlantCreate, PlantResponse, ClippingCreate
-from app.models.plant import PlantModel
-from bson import ObjectId
-from bson.errors import InvalidId
-from typing import List, Optional
+"""Business logic for plant operations."""
+
 from datetime import datetime
+from typing import Optional
 
-async def create_plant(data: PlantCreate, user_id: Optional[str] = None) -> PlantResponse:
+from bson import ObjectId
+from pymongo import ReturnDocument
+
+from app.config.mongodb import plants_collection
+from app.schemas.plant import (
+    ClippingCreate,
+    PlantCreate,
+    PlantResponse,
+    PlantUpdate,
+    PLANT_STATUSES,
+)
+
+
+def _document_to_response(document: dict) -> PlantResponse:
+    """Convert a MongoDB plant document into a response schema."""
+    document["_id"] = str(document["_id"])
+
+    if document.get("parent_plant_id"):
+        document["parent_plant_id"] = str(document["parent_plant_id"])
+
+    return PlantResponse(**document)
+
+
+def _get_object_id(value: str) -> ObjectId:
+    """Convert a string ID into a MongoDB ObjectId."""
+    if not ObjectId.is_valid(value):
+        raise ValueError("Invalid plant ID.")
+    return ObjectId(value)
+
+
+async def create_plant(data: PlantCreate) -> PlantResponse:
+    """Create a new plant."""
     now = datetime.utcnow()
+    document = data.dict()
+    document["quantity"] = max(document.get("quantity", 1), 1)
+    document["generation"] = 0
+    document["status"] = "🌱 Propagating"
+    document["location_history"] = []
+    document["created_at"] = now
+    document["updated_at"] = now
 
-    plant_model = PlantModel(
-        name=data.name,
-        user_id=user_id,
-        parentPlantId=data.parentPlantId,
-        location=data.location,
-        created_at=now,
-        updated_at=now
+    result = await plants_collection.insert_one(document)
+    saved = await plants_collection.find_one({"_id": result.inserted_id})
+
+    return _document_to_response(saved)
+
+
+async def create_clipping(data: ClippingCreate) -> PlantResponse:
+    """Create a clipping from an existing parent plant."""
+    parent_id = _get_object_id(data.parent_plant_id)
+    parent = await plants_collection.find_one({"_id": parent_id})
+
+    if not parent:
+        raise ValueError("Parent plant not found.")
+
+    now = datetime.utcnow()
+    document = data.dict(exclude={"parent_plant_id"})
+    document["name"] = document.get("name") or parent["name"]
+    document["variety"] = document.get("variety") or parent.get("variety")
+    document["owner_id"] = document.get("owner_id") or parent.get("owner_id")
+    document["parent_plant_id"] = str(parent["_id"])
+    document["location"] = document.get("location") or parent.get("location")
+    document["location_name"] = (
+        document.get("location_name") or parent.get("location_name")
     )
+    document["quantity"] = max(document.get("quantity", 1), 1)
+    document["generation"] = parent.get("generation", 0) + 1
+    document["status"] = "🌱 Propagating"
+    document["location_history"] = parent.get("location_history", [])
+    document["created_at"] = now
+    document["updated_at"] = now
 
-    result = await db.plants.insert_one(plant_model.dict())
-    plant_id = str(result.inserted_id)
+    result = await plants_collection.insert_one(document)
+    saved = await plants_collection.find_one({"_id": result.inserted_id})
 
-    # only link to user if user_id is provided
-    if user_id:
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(user_id)},
-                {"$push": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
+    return _document_to_response(saved)
 
-    return PlantResponse(id=plant_id, **plant_model.dict())
 
 async def get_plant(plant_id: str) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
-        return None
+    """Get one plant by ID."""
+    object_id = _get_object_id(plant_id)
+    plant = await plants_collection.find_one({"_id": object_id})
 
-    plant = await db.plants.find_one({"_id": oid})
     if not plant:
         return None
 
-    plant_model = PlantModel(**{k: v for k, v in plant.items() if k != "_id"})
-    return PlantResponse(id=str(plant["_id"]), **plant_model.dict())
+    return _document_to_response(plant)
 
-async def update_plant(plant_id: str, update_data: dict) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
-        return None
 
-    existing = await db.plants.find_one({"_id": oid})
-    if not existing:
-        return None
+async def get_plants_by_owner(owner_id: str) -> list[PlantResponse]:
+    """Get all plants owned by a user."""
+    cursor = plants_collection.find({"owner_id": owner_id})
+    return [_document_to_response(document) async for document in cursor]
 
-    updated_model = PlantModel(**{
-        **{k: v for k, v in existing.items() if k != "_id"},
-        **update_data,
-        "updated_at": datetime.utcnow()
-    })
 
-    await db.plants.update_one(
-        {"_id": oid},
-        {"$set": updated_model.dict()}
-    )
-    return await get_plant(plant_id)
+async def get_all_plants() -> list[PlantResponse]:
+    """Get all plants."""
+    cursor = plants_collection.find()
+    return [_document_to_response(document) async for document in cursor]
 
-async def remove_plant(plant_id: str) -> bool:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
-        return False
 
-    # remove plant id from user's plants array if it has a user
-    plant = await db.plants.find_one({"_id": oid})
-    if not plant:
-        return False
+async def get_lineage(plant_id: str) -> list[PlantResponse]:
+    """Get parent lineage for a plant."""
+    lineage: list[PlantResponse] = []
+    current_id = plant_id
 
-    if plant.get("user_id"):
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(plant["user_id"])},
-                {"$pull": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
+    while current_id:
+        plant = await get_plant(current_id)
 
-    result = await db.plants.delete_one({"_id": oid})
-    return result.deleted_count == 1
-
-async def claim_plant(plant_id: str, user_id: str) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-        ObjectId(user_id)
-    except InvalidId:
-        return None
-
-    plant = await db.plants.find_one({"_id": oid})
-    if not plant:
-        return None
-
-    # update plant with user_id
-    await db.plants.update_one(
-        {"_id": oid},
-        {"$set": {"user_id": user_id, "updated_at": datetime.utcnow()}}
-    )
-
-    # add plant to user's plants array
-    await users_collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$push": {"plants": plant_id}}
-    )
-
-    return await get_plant(plant_id)
-
-async def create_clipping(parent_plant_id: str, data: ClippingCreate) -> Optional[PlantResponse]:
-    # make sure parent exists
-    parent = await get_plant(parent_plant_id)
-    if not parent:
-        return None
-
-    now = datetime.utcnow()
-
-    plant_model = PlantModel(
-        name=data.name,
-        user_id=data.user_id,
-        parentPlantId=parent_plant_id,
-        location=data.location,
-        created_at=now,
-        updated_at=now
-    )
-
-    result = await db.plants.insert_one(plant_model.dict())
-    plant_id = str(result.inserted_id)
-
-    # only link to user if user_id provided
-    if data.user_id:
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(data.user_id)},
-                {"$push": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
-
-    return PlantResponse(id=plant_id, **plant_model.dict())
-
-async def get_lineage(plant_id: str) -> List[PlantResponse]:
-    lineage = []
-    visited = set()
-
-    current = await get_plant(plant_id)
-    if current:
-        lineage.append(current)
-        visited.add(plant_id)
-
-    while current and current.parentPlantId:
-        if current.parentPlantId in visited:
+        if not plant:
             break
-        visited.add(current.parentPlantId)
-        parent = await get_plant(current.parentPlantId)
-        if not parent:
-            break
-        lineage.append(parent)
-        current = parent
+
+        lineage.insert(0, plant)
+        current_id = plant.parent_plant_id
 
     return lineage
 
-async def get_plants_by_user(user_id: str) -> List[PlantResponse]:
-    try:
-        ObjectId(user_id)
-    except InvalidId:
-        return []
 
-    plants = await db.plants.find({"user_id": user_id}).to_list(length=None)
-    result = []
-    for plant in plants:
-        plant_model = PlantModel(**{k: v for k, v in plant.items() if k != "_id"})
-        result.append(PlantResponse(id=str(plant["_id"]), **plant_model.dict()))
-    return result
-from app.config.mongodb import db, users_collection
-from app.schemas.plant import PlantCreate, PlantResponse, ClippingCreate
-from app.models.plant import PlantModel
-from bson import ObjectId
-from bson.errors import InvalidId
-from typing import List, Optional
-from datetime import datetime
+async def update_plant(
+    plant_id: str,
+    updates: PlantUpdate,
+) -> Optional[PlantResponse]:
+    """Update a plant by ID."""
+    object_id = _get_object_id(plant_id)
+    update_data = updates.dict(exclude_unset=True)
 
-async def create_plant(data: PlantCreate, user_id: Optional[str] = None) -> PlantResponse:
-    now = datetime.utcnow()
+    if "status" in update_data and update_data["status"] not in PLANT_STATUSES:
+        raise ValueError("Invalid plant status.")
 
-    plant_model = PlantModel(
-        name=data.name,
-        user_id=user_id,
-        parentPlantId=data.parentPlantId,
-        location=data.location,
-        status="🌱 Propagating",
-        generation=0,
-        created_at=now,
-        updated_at=now
+    if "quantity" in update_data and update_data["quantity"] < 1:
+        raise ValueError("Quantity must be at least 1.")
+
+    if not update_data:
+        return await get_plant(plant_id)
+
+    update_data["updated_at"] = datetime.utcnow()
+
+    updated = await plants_collection.find_one_and_update(
+        {"_id": object_id},
+        {"$set": update_data},
+        return_document=ReturnDocument.AFTER,
     )
 
-    result = await db.plants.insert_one(plant_model.dict())
-    plant_id = str(result.inserted_id)
-
-    if user_id:
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(user_id)},
-                {"$push": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
-
-    return PlantResponse(id=plant_id, **plant_model.dict())
-
-async def get_plant(plant_id: str) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
+    if not updated:
         return None
 
-    plant = await db.plants.find_one({"_id": oid})
-    if not plant:
-        return None
+    return _document_to_response(updated)
 
-    plant_model = PlantModel(**{k: v for k, v in plant.items() if k != "_id"})
-    return PlantResponse(id=str(plant["_id"]), **plant_model.dict())
 
-async def update_plant(plant_id: str, update_data: dict) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
-        return None
-
-    existing = await db.plants.find_one({"_id": oid})
-    if not existing:
-        return None
-
-    updated_model = PlantModel(**{
-        **{k: v for k, v in existing.items() if k != "_id"},
-        **update_data,
-        "updated_at": datetime.utcnow()
-    })
-
-    await db.plants.update_one(
-        {"_id": oid},
-        {"$set": updated_model.dict()}
-    )
-    return await get_plant(plant_id)
-
-async def remove_plant(plant_id: str) -> bool:
-    try:
-        oid = ObjectId(plant_id)
-    except InvalidId:
-        return False
-
-    plant = await db.plants.find_one({"_id": oid})
-    if not plant:
-        return False
-
-    if plant.get("user_id"):
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(plant["user_id"])},
-                {"$pull": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
-
-    result = await db.plants.delete_one({"_id": oid})
-    return result.deleted_count == 1
-
-async def claim_plant(plant_id: str, user_id: str) -> Optional[PlantResponse]:
-    try:
-        oid = ObjectId(plant_id)
-        ObjectId(user_id)
-    except InvalidId:
-        return None
-
-    plant = await db.plants.find_one({"_id": oid})
-    if not plant:
-        return None
-
-    await db.plants.update_one(
-        {"_id": oid},
-        {"$set": {"user_id": user_id, "updated_at": datetime.utcnow()}}
-    )
-
-    await users_collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$push": {"plants": plant_id}}
-    )
-
-    return await get_plant(plant_id)
-
-async def create_clipping(parent_plant_id: str, data: ClippingCreate) -> Optional[PlantResponse]:
-    parent = await get_plant(parent_plant_id)
-    if not parent:
-        return None
-
-    now = datetime.utcnow()
-
-    # generation automatically increases from parent
-    plant_model = PlantModel(
-        name=data.name,
-        user_id=data.user_id,
-        parentPlantId=parent_plant_id,
-        location=data.location,
-        status="🌱 Propagating",
-        generation=(parent.generation or 0) + 1,
-        created_at=now,
-        updated_at=now
-    )
-
-    result = await db.plants.insert_one(plant_model.dict())
-    plant_id = str(result.inserted_id)
-
-    if data.user_id:
-        try:
-            await users_collection.update_one(
-                {"_id": ObjectId(data.user_id)},
-                {"$push": {"plants": plant_id}}
-            )
-        except InvalidId:
-            pass
-
-    return PlantResponse(id=plant_id, **plant_model.dict())
-
-async def get_lineage(plant_id: str) -> List[PlantResponse]:
-    lineage = []
-    visited = set()
-
-    current = await get_plant(plant_id)
-    if current:
-        lineage.append(current)
-        visited.add(plant_id)
-
-    while current and current.parentPlantId:
-        if current.parentPlantId in visited:
-            break
-        visited.add(current.parentPlantId)
-        parent = await get_plant(current.parentPlantId)
-        if not parent:
-            break
-        lineage.append(parent)
-        current = parent
-
-    return lineage
-
-async def get_plants_by_user(user_id: str) -> List[PlantResponse]:
-    try:
-        ObjectId(user_id)
-    except InvalidId:
-        return []
-
-    plants = await db.plants.find({"user_id": user_id}).to_list(length=None)
-    result = []
-    for plant in plants:
-        plant_model = PlantModel(**{k: v for k, v in plant.items() if k != "_id"})
-        result.append(PlantResponse(id=str(plant["_id"]), **plant_model.dict()))
-    return result
+async def delete_plant(plant_id: str) -> None:
+    """Delete a plant by ID."""
+    object_id = _get_object_id(plant_id)
+    await plants_collection.delete_one({"_id": object_id})
