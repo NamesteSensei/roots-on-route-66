@@ -1,65 +1,92 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from app.schemas.plant import PlantCreate, PlantResponse, ClippingCreate
-from app.services.plant_service import (
-    create_plant,
-    get_plant,
-    update_plant,
-    remove_plant,
-    claim_plant,
-    create_clipping,
-    get_lineage,
-    get_plants_by_user
+"""API routes for plant operations."""
+
+from fastapi import APIRouter, HTTPException, status
+
+from app.schemas.plant import ClippingCreate, PlantCreate, PlantResponse, PlantUpdate
+from app.services import plant_service
+
+router = APIRouter(prefix="/plants", tags=["plants"])
+
+
+@router.post(
+    "/",
+    response_model=PlantResponse,
+    status_code=status.HTTP_201_CREATED,
 )
+async def create_plant(plant: PlantCreate) -> PlantResponse:
+    """Create a new plant."""
+    return await plant_service.create_plant(plant)
 
-router = APIRouter(prefix="/plants", tags=["Plants"])
 
-# create plant — anonymous or by user
-@router.post("/", response_model=PlantResponse)
-async def add_plant(plant_data: PlantCreate):
-    return await create_plant(plant_data, plant_data.user_id)
+@router.post(
+    "/clippings",
+    response_model=PlantResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_clipping(clipping: ClippingCreate) -> PlantResponse:
+    """Create a clipping from a parent plant."""
+    try:
+        return await plant_service.create_clipping(clipping)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
-# get plant
+
+@router.get("/", response_model=list[PlantResponse])
+async def read_all_plants() -> list[PlantResponse]:
+    """Read all plants."""
+    return await plant_service.get_all_plants()
+
+
+@router.get("/owner/{owner_id}", response_model=list[PlantResponse])
+async def read_plants_by_owner(owner_id: str) -> list[PlantResponse]:
+    """Read plants owned by one user."""
+    return await plant_service.get_plants_by_owner(owner_id)
+
+
+@router.get("/{plant_id}/lineage", response_model=list[PlantResponse])
+async def read_plant_lineage(plant_id: str) -> list[PlantResponse]:
+    """Read plant lineage."""
+    try:
+        return await plant_service.get_lineage(plant_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 @router.get("/{plant_id}", response_model=PlantResponse)
-async def read_plant(plant_id: str):
-    plant = await get_plant(plant_id)
+async def read_plant(plant_id: str) -> PlantResponse:
+    """Read one plant by ID."""
+    try:
+        plant = await plant_service.get_plant(plant_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not plant:
-        raise HTTPException(status_code=404, detail="Plant not found")
+        raise HTTPException(status_code=404, detail="Plant not found.")
+
     return plant
 
-# update plant
-@router.put("/{plant_id}", response_model=PlantResponse)
-async def edit_plant(plant_id: str, update_data: dict):
-    plant = await update_plant(plant_id, update_data)
+
+@router.patch("/{plant_id}", response_model=PlantResponse)
+async def update_plant(
+    plant_id: str,
+    updates: PlantUpdate,
+) -> PlantResponse:
+    """Update one plant by ID."""
+    try:
+        plant = await plant_service.update_plant(plant_id, updates)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not plant:
-        raise HTTPException(status_code=404, detail="Plant not found")
+        raise HTTPException(status_code=404, detail="Plant not found.")
+
     return plant
 
-# delete plant
-@router.delete("/{plant_id}")
-async def delete_plant(plant_id: str):
-    success = await remove_plant(plant_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Plant not found")
-    return {"message": "Plant deleted"}
 
-# claim an anonymous plant
-@router.post("/{plant_id}/claim", response_model=PlantResponse)
-async def claim_existing_plant(plant_id: str, user_id: str):
-    plant = await claim_plant(plant_id, user_id)
-    if not plant:
-        raise HTTPException(status_code=404, detail="Plant not found")
-    return plant
-
-# take a clipping from a plant
-@router.post("/{plant_id}/clipping", response_model=PlantResponse)
-async def take_clipping(plant_id: str, clipping_data: ClippingCreate):
-    clipping = await create_clipping(plant_id, clipping_data)
-    if not clipping:
-        raise HTTPException(status_code=404, detail="Parent plant not found")
-    return clipping
-
-# get full lineage of a plant
-@router.get("/{plant_id}/lineage", response_model=List[PlantResponse])
-async def plant_lineage(plant_id: str):
-    return await get_lineage(plant_id)
+@router.delete("/{plant_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_plant(plant_id: str) -> None:
+    """Delete one plant by ID."""
+    try:
+        await plant_service.delete_plant(plant_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
