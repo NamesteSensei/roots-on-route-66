@@ -1,46 +1,50 @@
 """API routes for user operations."""
 
-from fastapi import APIRouter, HTTPException, status
+from typing import Any
 
-from app.schemas.user import (
-    PasswordResetComplete,
-    PasswordResetRequest,
-    UserChangePassword,
-    UserCreate,
-    UserLogin,
-    UserResponse,
-    UserUpdate,
-)
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.dependencies.auth import get_current_firebase_user
+from app.schemas.user import FirebaseUserSync, UserResponse, UserUpdate
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post(
-    "/register",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def register_user(user: UserCreate) -> UserResponse:
-    """Register a new user."""
+@router.post("/sync", response_model=UserResponse)
+async def sync_current_user(
+    profile_data: FirebaseUserSync,
+    firebase_user: dict[str, Any] = Depends(get_current_firebase_user),
+) -> UserResponse:
+    """Create or update the current Firebase user's MongoDB profile."""
     try:
-        return await user_service.create_user(user)
+        return await user_service.sync_firebase_user(
+            firebase_claims=firebase_user,
+            profile_data=profile_data,
+        )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
 
-@router.post("/login", response_model=UserResponse)
-async def login_user(credentials: UserLogin) -> UserResponse:
-    """Log in an existing user."""
-    try:
-        return await user_service.authenticate_user(credentials)
-    except ValueError as error:
-        raise HTTPException(status_code=401, detail=str(error)) from error
+@router.get("/me", response_model=UserResponse)
+async def read_current_user(
+    firebase_user: dict[str, Any] = Depends(get_current_firebase_user),
+) -> UserResponse:
+    """Read the current authenticated user's profile."""
+    user = await user_service.get_user_by_firebase_uid(firebase_user["uid"])
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile not found. Call /users/sync first.",
+        )
+
+    return user
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def read_user(user_id: str) -> UserResponse:
-    """Read one user by ID."""
+    """Read one public user profile by MongoDB ID."""
     try:
         user = await user_service.get_user(user_id)
     except ValueError as error:
@@ -52,64 +56,43 @@ async def read_user(user_id: str) -> UserResponse:
     return user
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
-async def update_user(user_id: str, updates: UserUpdate) -> UserResponse:
-    """Update one user by ID."""
+@router.patch("/me", response_model=UserResponse)
+async def update_current_user(
+    updates: UserUpdate,
+    firebase_user: dict[str, Any] = Depends(get_current_firebase_user),
+) -> UserResponse:
+    """Update the current authenticated user's profile."""
+    current_user = await user_service.get_user_by_firebase_uid(
+        firebase_user["uid"]
+    )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile not found.",
+        )
+
     try:
-        user = await user_service.update_user(user_id, updates)
+        updated = await user_service.update_user(current_user.id, updates)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    if not user:
+    if not updated:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    return user
+    return updated
 
 
-@router.post(
-    "/{user_id}/change-password",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def change_password(
-    user_id: str,
-    payload: UserChangePassword,
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_current_user(
+    firebase_user: dict[str, Any] = Depends(get_current_firebase_user),
 ) -> None:
-    """Change a user's password."""
-    try:
-        await user_service.change_password(user_id, payload)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    """Delete the current authenticated user's local profile."""
+    current_user = await user_service.get_user_by_firebase_uid(
+        firebase_user["uid"]
+    )
 
+    if not current_user:
+        return
 
-@router.post("/reset-password/request")
-async def request_password_reset(
-    payload: PasswordResetRequest,
-) -> dict[str, str]:
-    """Request a password reset token."""
-    try:
-        token = await user_service.request_password_reset(payload)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-
-    return {"reset_token": token}
-
-
-@router.post(
-    "/reset-password/complete",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def complete_password_reset(payload: PasswordResetComplete) -> None:
-    """Complete a password reset."""
-    try:
-        await user_service.reset_password(payload)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-
-
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str) -> None:
-    """Delete one user by ID."""
-    try:
-        await user_service.delete_user(user_id)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    await user_service.delete_user(current_user.id)
