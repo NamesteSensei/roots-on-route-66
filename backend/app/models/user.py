@@ -10,12 +10,13 @@ class UserModel(BaseModel):
     """Represent a user stored in MongoDB."""
 
     id: Optional[str] = Field(default=None, alias="_id")
+    firebase_uid: Optional[str] = None
     name: str
-    username: str
-    zip_code: str
+    username: Optional[str] = None
+    zip_code: Optional[str] = None
     email: EmailStr
-    password: str
     role: str = "user"
+    auth_provider: str = "firebase"
     bio: Optional[str] = None
     profile_picture: Optional[str] = None
     reset_token: Optional[str] = None
