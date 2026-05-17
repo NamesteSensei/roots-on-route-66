@@ -1,0 +1,9 @@
+{
+  "name": "roots-on-route-66-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static frontend for Roots on Route 66.",
+  "scripts": {
+    "check": "node --check script.js"
+  }
+}
