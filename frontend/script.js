@@ -96,57 +96,166 @@ function showToast(message, type = 'success', duration = 4000) {
 }
 
 // ========== Authentication ==========
-async function login(email, password) {
-    const response = await fetch("/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+function getFirebaseAuth() {
+    if (!window.firebaseAuthTools?.auth) {
+        throw new Error("Firebase Auth is not initialized.");
+    }
+
+    return window.firebaseAuthTools.auth;
+}
+
+async function getFirebaseIdToken() {
+    const auth = getFirebaseAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+        throw new Error("Please sign in first.");
+    }
+
+    return await user.getIdToken();
+}
+
+async function apiRequest(path, options = {}) {
+    const token = await getFirebaseIdToken();
+    const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {})
+    };
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers
     });
 
     if (!response.ok) {
-        showToast('Invalid email or password', 'error');
-        return false;
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || error.message || "Request failed.");
     }
 
-    currentUser = await response.json();
-    localStorage.setItem('sweetroots_current_user', JSON.stringify(currentUser));
-    showToast(`Welcome back, ${currentUser.name.split(' ')[0]}! 🌱`, 'success');
-    return true;
+    if (response.status === 204) {
+        return null;
+    }
+
+    return await response.json();
+}
+
+function normalizeUserProfile(profile, fallbackUser = null) {
+    const email = profile?.email || fallbackUser?.email || "";
+    const name = (
+        profile?.name ||
+        fallbackUser?.displayName ||
+        email.split("@")[0] ||
+        "Grower"
+    );
+
+    return {
+        ...profile,
+        id: profile?._id || profile?.id || fallbackUser?.uid || "",
+        name,
+        username: profile?.username || name.replace(/\s+/g, "_").toLowerCase(),
+        email,
+        profile_picture: profile?.profile_picture || fallbackUser?.photoURL || null
+    };
+}
+
+async function syncCurrentUser(profileData = {}) {
+    const auth = getFirebaseAuth();
+    const firebaseUser = auth.currentUser;
+
+    if (!firebaseUser) {
+        throw new Error("Please sign in first.");
+    }
+
+    const payload = {
+        name: profileData.name || firebaseUser.displayName || firebaseUser.email.split("@")[0],
+        username: profileData.username || "",
+        zip_code: profileData.zipCode || profileData.zip_code || "",
+        bio: profileData.bio || "",
+        profile_picture: profileData.profile_picture || firebaseUser.photoURL || null
+    };
+
+    const syncedUser = await apiRequest("/users/sync", {
+        method: "POST",
+        body: JSON.stringify(payload)
+    });
+
+    currentUser = normalizeUserProfile(syncedUser, firebaseUser);
+    localStorage.setItem("sweetroots_current_user", JSON.stringify(currentUser));
+    return currentUser;
+}
+
+async function login(email, password) {
+    try {
+        const auth = getFirebaseAuth();
+        await auth.signInWithEmailAndPassword(email, password);
+        await syncCurrentUser();
+
+        showToast(`Welcome back, ${currentUser.name.split(" ")[0]}! 🌱`, "success");
+        return true;
+    } catch (error) {
+        showToast(error.message || "Invalid email or password", "error");
+        return false;
+    }
 }
 
 async function register(userData) {
-    const response = await fetch("/users/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: userData.name,
-            username: userData.username,
-            zip_code: userData.zipCode || "00000",
-            email: userData.email,
-            password: userData.password
-        })
-    });
+    try {
+        const auth = getFirebaseAuth();
 
-    if (!response.ok) {
-        const error = await response.json();
-        showToast(error.detail || 'Registration failed', 'error');
+        await auth.createUserWithEmailAndPassword(
+            userData.email,
+            userData.password
+        );
+
+        if (auth.currentUser && userData.name) {
+            await auth.currentUser.updateProfile({
+                displayName: userData.name
+            });
+        }
+
+        await syncCurrentUser(userData);
+
+        showToast(`Welcome to SweetRoots, ${currentUser.name.split(" ")[0]}! 🎉`, "success");
+        return true;
+    } catch (error) {
+        showToast(error.message || "Registration failed", "error");
         return false;
     }
-
-    currentUser = await response.json();
-    localStorage.setItem('sweetroots_current_user', JSON.stringify(currentUser));
-    showToast(`Welcome to SweetRoots, ${currentUser.name.split(' ')[0]}! 🎉`, 'success');
-    return true;
 }
 
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('sweetroots_current_user');
-    showToast('Successfully signed out 👋', 'info');
-    renderApp();
+async function googleLogin() {
+    try {
+        const auth = getFirebaseAuth();
+        const provider = window.firebaseAuthTools.googleProvider;
+
+        await auth.signInWithPopup(provider);
+        await syncCurrentUser();
+
+        showToast(`Welcome, ${currentUser.name.split(" ")[0]}! 🌱`, "success");
+        closeModal();
+        await renderApp();
+    } catch (error) {
+        showToast(error.message || "Google sign-in failed", "error");
+    }
+}
+
+async function logout() {
+    try {
+        const auth = getFirebaseAuth();
+        await auth.signOut();
+    } finally {
+        currentUser = null;
+        localStorage.removeItem("sweetroots_current_user");
+        showToast("Successfully signed out 👋", "info");
+        renderApp();
+    }
 }
 
 window.logout = logout;
+window.googleLogin = googleLogin;
 
 // ========== Plant Management ==========
 async function createPlant(varietyId, parentId = null) {
@@ -253,9 +362,12 @@ function deleteMedia(mediaId) {
 async function updateUserProfile(updates) {
     if (!currentUser) return false;
 
-    const response = await fetch(`/users/${currentUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await getFirebaseIdToken()}`
+        },
         body: JSON.stringify({
             name: updates.name,
             username: updates.username,
@@ -1028,6 +1140,10 @@ function showLoginModal() {
                 <button type="submit" class="btn-primary" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
                     <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                     Sign In
+                </button>
+                <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
+                    <i class="fab fa-google" aria-hidden="true"></i>
+                    Continue with Google
                 </button>
             </form>
             <p style="text-align: center; margin-top: var(--space-xl); color: var(--text-muted); font-size: 1.025rem;">
