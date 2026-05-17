@@ -2,11 +2,23 @@
 
 import os
 
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING, TEXT
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "roots_on_route_66")
+load_dotenv()
+
+MONGO_URI = (
+    os.getenv("MONGODB_URI")
+    or os.getenv("MONGO_URI")
+    or "mongodb://localhost:27017"
+)
+
+DATABASE_NAME = (
+    os.getenv("MONGODB_DB_NAME")
+    or os.getenv("DATABASE_NAME")
+    or "roots_on_route_66"
+)
 
 client = AsyncIOMotorClient(MONGO_URI)
 database = client[DATABASE_NAME]
