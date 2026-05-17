@@ -1,18 +1,28 @@
 # Python virtual environment
 venv/
+.venv/
+env/
 
 # Environment variables
 .env
+backend/.env
+
+# Firebase service account files
+serviceAccountKey.json
+backend/serviceAccountKey.json
 
 # Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
 # VS Code / editor files
 .vscode/
+.idea/
 
-# macOS files
+# macOS / Windows files
 .DS_Store
+Thumbs.db
 
 # Frontend dependencies
 node_modules/
