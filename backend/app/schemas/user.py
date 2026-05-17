@@ -80,7 +80,6 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        """Pydantic response configuration."""
-
-        allow_population_by_field_name = True
+    model_config = {
+        "validate_by_name": True,
+    }
