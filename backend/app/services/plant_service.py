@@ -30,14 +30,23 @@ def _get_object_id(value: str) -> ObjectId:
     """Convert a string ID into a MongoDB ObjectId."""
     if not ObjectId.is_valid(value):
         raise ValueError("Invalid plant ID.")
+
     return ObjectId(value)
+
+
+def _safe_quantity(value: Optional[int]) -> int:
+    """Return a valid plant quantity with a minimum value of one."""
+    if value is None:
+        return 1
+
+    return max(value, 1)
 
 
 async def create_plant(data: PlantCreate) -> PlantResponse:
     """Create a new plant."""
     now = datetime.utcnow()
-    document = data.dict()
-    document["quantity"] = max(document.get("quantity", 1), 1)
+    document = data.model_dump(by_alias=False)
+    document["quantity"] = _safe_quantity(document.get("quantity"))
     document["generation"] = 0
     document["status"] = "🌱 Propagating"
     document["location_history"] = []
@@ -59,7 +68,7 @@ async def create_clipping(data: ClippingCreate) -> PlantResponse:
         raise ValueError("Parent plant not found.")
 
     now = datetime.utcnow()
-    document = data.dict(exclude={"parent_plant_id"})
+    document = data.model_dump(exclude={"parent_plant_id"}, by_alias=False)
     document["name"] = document.get("name") or parent["name"]
     document["variety"] = document.get("variety") or parent.get("variety")
     document["owner_id"] = document.get("owner_id") or parent.get("owner_id")
@@ -68,7 +77,7 @@ async def create_clipping(data: ClippingCreate) -> PlantResponse:
     document["location_name"] = (
         document.get("location_name") or parent.get("location_name")
     )
-    document["quantity"] = max(document.get("quantity", 1), 1)
+    document["quantity"] = _safe_quantity(document.get("quantity"))
     document["generation"] = parent.get("generation", 0) + 1
     document["status"] = "🌱 Propagating"
     document["location_history"] = parent.get("location_history", [])
@@ -127,13 +136,13 @@ async def update_plant(
 ) -> Optional[PlantResponse]:
     """Update a plant by ID."""
     object_id = _get_object_id(plant_id)
-    update_data = updates.dict(exclude_unset=True)
+    update_data = updates.model_dump(exclude_unset=True, by_alias=False)
 
     if "status" in update_data and update_data["status"] not in PLANT_STATUSES:
         raise ValueError("Invalid plant status.")
 
-    if "quantity" in update_data and update_data["quantity"] < 1:
-        raise ValueError("Quantity must be at least 1.")
+    if "quantity" in update_data:
+        update_data["quantity"] = _safe_quantity(update_data["quantity"])
 
     if not update_data:
         return await get_plant(plant_id)
