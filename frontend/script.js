@@ -169,9 +169,20 @@ async function syncCurrentUser(profileData = {}) {
         throw new Error("Please sign in first.");
     }
 
+    const fallbackUsername = (
+        profileData.username ||
+        firebaseUser.displayName ||
+        firebaseUser.email.split("@")[0] ||
+        firebaseUser.uid
+    )
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
     const payload = {
         name: profileData.name || firebaseUser.displayName || firebaseUser.email.split("@")[0],
-        username: profileData.username || "",
+        username: fallbackUsername || `grower_${firebaseUser.uid.slice(0, 8)}`,
         zip_code: profileData.zipCode || profileData.zip_code || "",
         bio: profileData.bio || "",
         profile_picture: profileData.profile_picture || firebaseUser.photoURL || null
@@ -257,64 +268,164 @@ async function logout() {
 window.logout = logout;
 window.googleLogin = googleLogin;
 
-// ========== Plant Management ==========
-async function createPlant(varietyId, parentId = null) {
-    const variety = SWEET_POTATO_VARIETIES.find(v => v.id === varietyId);
-    if (!variety) return null;
+function getCurrentUserId() {
+    return currentUser?.id || currentUser?._id || null;
+}
 
-    const response = await fetch("/plants/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: variety.name,
-            user_id: currentUser?.id || null,
-            parentPlantId: parentId || null,
-            location: { lat: 0, lng: 0 }
-        })
-    });
+function getPlantId(plant) {
+    return plant?.id || plant?._id || null;
+}
 
-    if (!response.ok) {
-        showToast('Failed to create plant', 'error');
+function normalizePlant(plant) {
+    if (!plant) {
         return null;
     }
 
-    const plant = await response.json();
-    showToast(`${variety.name} added to your garden! 🌱`, 'success');
-    return plant;
+    const plantId = getPlantId(plant);
+    const currentUserId = getCurrentUserId();
+    const ownerId = plant.owner_id || plant.ownerId || plant.user_id || null;
+
+    return {
+        ...plant,
+        id: plantId,
+        _id: plant._id || plantId,
+        owner_id: ownerId,
+        ownerId: ownerId,
+        user_id: ownerId,
+        parent_plant_id: plant.parent_plant_id || plant.parentPlantId || null,
+        parentPlantId: plant.parentPlantId || plant.parent_plant_id || null,
+        location_name: plant.location_name || plant.locationName || "",
+        locationName: plant.locationName || plant.location_name || "",
+        station_id: plant.station_id || plant.stationId || null,
+        stationId: plant.stationId || plant.station_id || null,
+        image_url: plant.image_url || plant.imageUrl || null,
+        imageUrl: plant.imageUrl || plant.image_url || null,
+        ownerName: ownerId === currentUserId
+            ? currentUser?.name || currentUser?.username || "You"
+            : plant.ownerName || ownerId || "SweetRoots Grower"
+    };
+}
+
+// ========== Plant Management ==========
+async function createPlant(varietyId, parentId = null) {
+    const variety = SWEET_POTATO_VARIETIES.find((item) => item.id === varietyId);
+
+    if (!variety) {
+        return null;
+    }
+
+    if (!currentUser) {
+        showToast("Please sign in before adding plants", "warning");
+        return null;
+    }
+
+    const currentUserId = getCurrentUserId();
+
+    if (!currentUserId) {
+        showToast("User profile is still loading. Please try again.", "warning");
+        return null;
+    }
+
+    try {
+        const plant = await apiRequest("/plants/", {
+            method: "POST",
+            body: JSON.stringify({
+                name: variety.name,
+                variety: variety.name,
+                owner_id: currentUserId,
+                parent_plant_id: parentId || null,
+                location: { lat: 0, lng: 0 },
+                location_name: "",
+                status: "🌱 Propagating",
+                quantity: 1,
+                notes: variety.description || "",
+                image_url: null
+            })
+        });
+
+        const normalizedPlant = normalizePlant(plant);
+        showToast(`${variety.name} added to your garden! 🌱`, "success");
+        return normalizedPlant;
+    } catch (error) {
+        showToast(error.message || "Failed to create plant", "error");
+        return null;
+    }
 }
 
 async function getChildPlants(plantId) {
     const allPlants = await getUserPlants();
-    return allPlants.filter(p => p.parentPlantId === plantId);
+
+    return allPlants.filter((plant) => {
+        return plant.parent_plant_id === plantId || plant.parentPlantId === plantId;
+    });
 }
 
 async function getPlantById(plantId) {
-    const response = await fetch(`/plants/${plantId}`);
-    if (!response.ok) return null;
-    return await response.json();
+    if (!plantId) {
+        return null;
+    }
+
+    try {
+        const plant = await apiRequest(`/plants/${plantId}`, {
+            method: "GET"
+        });
+
+        return normalizePlant(plant);
+    } catch {
+        return null;
+    }
 }
 
 async function getUserPlants() {
-    if (!currentUser) return [];
-    const response = await fetch(`/users/${currentUser.id}/plants`);
-    if (!response.ok) return [];
-    return await response.json();
+    const currentUserId = getCurrentUserId();
+
+    if (!currentUserId) {
+        return [];
+    }
+
+    try {
+        const plants = await apiRequest("/plants/", {
+            method: "GET"
+        });
+
+        return plants
+            .map(normalizePlant)
+            .filter((plant) => plant && plant.owner_id === currentUserId);
+    } catch {
+        return [];
+    }
 }
 
 async function updatePlant(plantId, updates) {
-    const response = await fetch(`/plants/${plantId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-    });
-
-    if (!response.ok) {
-        showToast('Failed to update plant', 'error');
+    if (!plantId || plantId === "undefined") {
+        showToast("Plant ID missing. Refresh and try again.", "error");
         return false;
     }
 
-    showToast('Plant updated successfully! ✨', 'success');
-    return true;
+    try {
+        await apiRequest(`/plants/${plantId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                name: updates.name,
+                variety: updates.variety,
+                owner_id: updates.owner_id || updates.ownerId,
+                parent_plant_id: updates.parent_plant_id || updates.parentPlantId,
+                location: updates.location,
+                location_name: updates.location_name || updates.locationName,
+                status: updates.status,
+                quantity: updates.quantity,
+                station_id: updates.station_id || updates.stationId,
+                notes: updates.notes,
+                image_url: updates.image_url || updates.imageUrl
+            })
+        });
+
+        showToast("Plant updated successfully! ✨", "success");
+        return true;
+    } catch (error) {
+        showToast(error.message || "Failed to update plant", "error");
+        return false;
+    }
 }
 
 async function updatePlantStatus(plantId, newStatus) {
@@ -322,104 +433,53 @@ async function updatePlantStatus(plantId, newStatus) {
 }
 
 async function deletePlant(plantId) {
-    const response = await fetch(`/plants/${plantId}`, {
-        method: "DELETE"
-    });
-
-    if (!response.ok) {
-        showToast('Failed to delete plant', 'error');
+    if (!plantId || plantId === "undefined") {
+        showToast("Plant ID missing. Refresh and try again.", "error");
         return false;
     }
 
-    showToast('Plant removed 🗑️', 'success');
-    await renderApp();
-    return true;
-}
+    try {
+        await apiRequest(`/plants/${plantId}`, {
+            method: "DELETE"
+        });
 
-async function deleteChildOnly(plantId) {
-    return await deletePlant(plantId);
-}
-
-function deleteMedia(mediaId) {
-    const media = mediaGallery.find(m => m.id === mediaId);
-    if (!media) {
-        showToast('Media not found', 'error');
+        showToast("Plant removed 🗑️", "success");
+        return true;
+    } catch (error) {
+        showToast(error.message || "Failed to delete plant", "error");
         return false;
     }
-
-    if (currentUser && media.userId !== currentUser.id) {
-        showToast('You can only delete your own posts', 'error');
-        return false;
-    }
-
-    mediaGallery = mediaGallery.filter(m => m.id !== mediaId);
-    saveData();
-    showToast('Post deleted successfully', 'success');
-    renderApp();
-    return true;
 }
 
-async function updateUserProfile(updates) {
-    if (!currentUser) return false;
-
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await getFirebaseIdToken()}`
-        },
-        body: JSON.stringify({
-            name: updates.name,
-            username: updates.username,
-            zip_code: updates.zipCode,
-            bio: updates.bio,
-            profile_picture: updates.profile_picture
-        })
-    });
-
-    if (!response.ok) {
-        showToast('Failed to update profile', 'error');
-        return false;
-    }
-
-    currentUser = await response.json();
-    localStorage.setItem('sweetroots_current_user', JSON.stringify(currentUser));
-    showToast('Profile updated successfully! ✨', 'success');
-    await renderApp();
-    return true;
-}
-
-function addProgressUpdate(plantId, note, mediaFile = null) {
+async function addProgressUpdate(plantId, note, mediaFile = null) {
     if (!currentUser) {
-        showToast('Please sign in to add updates', 'error');
+        showToast("Please sign in to add updates", "error");
         return false;
     }
 
-    const newNote = {
-        id: 'note_' + Date.now(),
-        text: note,
-        date: new Date().toISOString(),
-        media: mediaFile ? URL.createObjectURL(mediaFile) : null,
-        mediaType: mediaFile?.type?.startsWith('image/') ? 'image' :
-            mediaFile?.type?.startsWith('video/') ? 'video' : null
-    };
+    let uploadedMedia = null;
 
-    if (mediaFile && currentUser) {
+    if (mediaFile) {
+        uploadedMedia = await uploadImageToCloudinary(mediaFile);
+    }
+
+    if (uploadedMedia && currentUser) {
         mediaGallery.push({
-            id: 'media_' + Date.now(),
+            id: `media_${Date.now()}`,
             userId: currentUser.id,
             userName: currentUser.name,
-            plantId: plantId,
+            plantId,
             plantName: note,
-            type: newNote.mediaType,
-            url: newNote.media,
+            type: "image",
+            url: uploadedMedia.secure_url,
+            publicId: uploadedMedia.public_id,
             caption: note,
             date: new Date().toISOString()
         });
     }
 
     saveData();
-    showToast('Progress updated! 📸✨', 'success');
+    showToast("Progress updated! 📸✨", "success");
     return true;
 }
 
@@ -901,12 +961,12 @@ async function renderDashboard() {
                                         <h3 class="plant-name" id="plant-${plant.id}-title">${plant.name}</h3>
                                         <div class="plant-creator">
                                             <i class="fas fa-user" aria-hidden="true"></i>
-                                            Owner ID: <strong>${plant.user_id || 'Anonymous'}</strong>
+                                            Owner: <strong>${plant.ownerName || 'SweetRoots Grower'}</strong>
                                         </div>
                                         <div class="plant-id">ID: ${plant.id}</div>
                                         <div class="plant-status" data-status="${plant.status || '🌱 Propagating'}">${plant.status || '🌱 Propagating'}</div>
                                     </div>
-                                    ${(!currentUser || plant.user_id === currentUser.id) ? `
+                                    ${(!currentUser || plant.owner_id === getCurrentUserId()) ? `
                                         <button class="btn-danger" onclick="confirmDeletePlant('${plant.id}')" aria-label="Delete ${plant.name}" title="Delete plant">✕</button>
                                     ` : ''}
                                 </div>
@@ -1550,36 +1610,28 @@ window.handleRegister = async (event) => {
 };
 
 window.saveProfile = async () => {
-    const file = document.getElementById('editProfilePicture')?.files[0];
+    const file = document.getElementById("editProfilePicture")?.files[0];
+    let profilePictureUrl = currentUser?.profile_picture || null;
 
-    if (file) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const uploadResponse = await fetch(`/users/${currentUser.id}/profile-picture`, {
-            method: "POST",
-            body: formData
-        });
-
-        if (!uploadResponse.ok) {
-            showToast('Failed to upload photo', 'error');
-            return;
+    try {
+        if (file) {
+            const uploadResult = await uploadImageToCloudinary(file);
+            profilePictureUrl = uploadResult.secure_url;
         }
 
-        const uploadResult = await uploadResponse.json();
-        currentUser = uploadResult.user;
-        localStorage.setItem('sweetroots_current_user', JSON.stringify(currentUser));
+        const updates = {
+            name: document.getElementById("editName")?.value?.trim(),
+            username: document.getElementById("editUsername")?.value?.trim(),
+            zipCode: document.getElementById("editZipCode")?.value?.trim(),
+            bio: document.getElementById("editBio")?.value?.trim(),
+            profile_picture: profilePictureUrl
+        };
+
+        await updateUserProfile(updates);
+        closeModal();
+    } catch (error) {
+        showToast(error.message || "Failed to save profile", "error");
     }
-
-    const updates = {
-        name: document.getElementById('editName')?.value?.trim(),
-        username: document.getElementById('editUsername')?.value?.trim(),
-        zipCode: document.getElementById('editZipCode')?.value?.trim(),
-        bio: document.getElementById('editBio')?.value?.trim()
-    };
-
-    await updateUserProfile(updates);
-    closeModal();
 };
 
 window.addSelectedPlant = async () => {
@@ -1619,24 +1671,33 @@ window.updateStatus = async (plantId) => {
     }
 };
 
-window.uploadMedia = () => {
-    const caption = document.getElementById('uploadCaption')?.value?.trim();
-    const file = document.getElementById('uploadFile')?.files[0];
-    const plantId = document.getElementById('uploadPlantId')?.value;
+window.uploadMedia = async () => {
+    const caption = document.getElementById("uploadCaption")?.value?.trim();
+    const file = document.getElementById("uploadFile")?.files[0];
+    const plantId = document.getElementById("uploadPlantId")?.value;
 
     if (!caption || !plantId) {
-        showToast('Please fill all required fields', 'warning');
+        showToast("Please fill all required fields", "warning");
         return;
     }
 
-    if (file && file.size > 10 * 1024 * 1024) {
-        showToast('File too large. Max 10MB allowed', 'error');
+    if (!file) {
+        showToast("Please choose an image to upload", "warning");
         return;
     }
 
-    addProgressUpdate(plantId, caption, file);
-    closeModal();
-    renderApp();
+    if (file.size > 10 * 1024 * 1024) {
+        showToast("File too large. Max 10MB allowed", "error");
+        return;
+    }
+
+    try {
+        await addProgressUpdate(plantId, caption, file);
+        closeModal();
+        await renderApp();
+    } catch (error) {
+        showToast(error.message || "Failed to upload image", "error");
+    }
 };
 
 window.viewPlant = async (plantId) => {
