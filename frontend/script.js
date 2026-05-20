@@ -114,7 +114,7 @@ async function getFirebaseIdToken() {
         throw new Error("Please sign in first.");
     }
 
-    return await user.getIdToken();
+    return await user.getIdToken(true);
 }
 
 async function apiRequest(path, options = {}) {
@@ -195,6 +195,34 @@ async function syncCurrentUser(profileData = {}) {
 
     currentUser = normalizeUserProfile(syncedUser, firebaseUser);
     localStorage.setItem("sweetroots_current_user", JSON.stringify(currentUser));
+    return currentUser;
+}
+
+async function updateUserProfile(updates) {
+    const updatedUser = await apiRequest("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+            name: updates.name,
+            username: updates.username,
+            zip_code: updates.zipCode || updates.zip_code || "",
+            bio: updates.bio || "",
+            profile_picture: updates.profile_picture || null
+        })
+    });
+
+    currentUser = normalizeUserProfile(
+        updatedUser,
+        getFirebaseAuth().currentUser
+    );
+
+    localStorage.setItem(
+        "sweetroots_current_user",
+        JSON.stringify(currentUser)
+    );
+
+    showToast("Profile updated successfully!", "success");
+    await renderApp();
+
     return currentUser;
 }
 
@@ -306,6 +334,46 @@ function normalizePlant(plant) {
     };
 }
 
+async function uploadImageToCloudinary(file) {
+    if (!file) {
+        return null;
+    }
+
+    if (!file.type || !file.type.startsWith("image/")) {
+        throw new Error("Please choose a valid image file.");
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        throw new Error("Image is too large. Max size is 10MB.");
+    }
+
+    const auth = getFirebaseAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+        throw new Error("Please sign in before uploading images.");
+    }
+
+    const token = await user.getIdToken(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await fetch(`${API_BASE_URL}/uploads/image`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Image upload failed.");
+    }
+
+    return await response.json();
+}
+
 // ========== Plant Management ==========
 async function createPlant(varietyId, parentId = null) {
     const variety = SWEET_POTATO_VARIETIES.find((item) => item.id === varietyId);
@@ -326,25 +394,38 @@ async function createPlant(varietyId, parentId = null) {
         return null;
     }
 
+    const endpoint = parentId ? "/plants/clippings" : "/plants/";
+
+    const payload = {
+        name: variety.name,
+        variety: variety.name,
+        owner_id: currentUserId,
+        location: { lat: 0, lng: 0 },
+        location_name: "",
+        status: "🌱 Propagating",
+        quantity: 1,
+        notes: variety.description || "",
+        image_url: null
+    };
+
+    if (parentId) {
+        payload.parent_plant_id = parentId;
+    }
+
     try {
-        const plant = await apiRequest("/plants/", {
+        const plant = await apiRequest(endpoint, {
             method: "POST",
-            body: JSON.stringify({
-                name: variety.name,
-                variety: variety.name,
-                owner_id: currentUserId,
-                parent_plant_id: parentId || null,
-                location: { lat: 0, lng: 0 },
-                location_name: "",
-                status: "🌱 Propagating",
-                quantity: 1,
-                notes: variety.description || "",
-                image_url: null
-            })
+            body: JSON.stringify(payload)
         });
 
         const normalizedPlant = normalizePlant(plant);
-        showToast(`${variety.name} added to your garden! 🌱`, "success");
+
+        if (parentId) {
+            showToast(`${variety.name} clipping added! 🌿`, "success");
+        } else {
+            showToast(`${variety.name} added to your garden! 🌱`, "success");
+        }
+
         return normalizedPlant;
     } catch (error) {
         showToast(error.message || "Failed to create plant", "error");
@@ -432,7 +513,7 @@ async function updatePlantStatus(plantId, newStatus) {
     return await updatePlant(plantId, { status: newStatus });
 }
 
-async function deletePlant(plantId) {
+async function performDeletePlant(plantId) {
     if (!plantId || plantId === "undefined") {
         showToast("Plant ID missing. Refresh and try again.", "error");
         return false;
@@ -444,6 +525,8 @@ async function deletePlant(plantId) {
         });
 
         showToast("Plant removed 🗑️", "success");
+        await renderApp();
+
         return true;
     } catch (error) {
         showToast(error.message || "Failed to delete plant", "error");
@@ -1714,22 +1797,15 @@ window.viewMedia = (mediaId) => {
 };
 
 window.confirmDeletePlant = async (plantId) => {
-    const plant = await getPlantById(plantId);
-    if (!plant) return;
+    const confirmed = confirm(
+        "Are you sure you want to delete this plant?\n\nThis action cannot be undone."
+    );
 
-    const children = await getChildPlants(plantId);
-    const childrenCount = children.length;
-
-    let message = `Are you sure you want to delete "${plant.name}"?`;
-    if (childrenCount > 0) {
-        message += `\n\nThis plant has ${childrenCount} child plant${childrenCount !== 1 ? 's' : ''}.\n\nThis action cannot be undone.`;
-    } else {
-        message += `\n\nThis action cannot be undone.`;
+    if (!confirmed) {
+        return;
     }
 
-    if (confirm(message)) {
-        await deletePlant(plantId);
-    }
+    await performDeletePlant(plantId);
 };
 
 window.confirmDeleteMedia = (mediaId) => {
@@ -1738,9 +1814,7 @@ window.confirmDeleteMedia = (mediaId) => {
     }
 };
 
-window.deletePlant = async (plantId) => {
-    await confirmDeletePlant(plantId);
-};
+window.deletePlant = performDeletePlant;
 
 window.deleteMedia = (mediaId) => {
     confirmDeleteMedia(mediaId);

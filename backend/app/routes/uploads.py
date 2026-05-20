@@ -36,7 +36,7 @@ async def upload_image(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Image upload failed.",
+            detail=f"Image upload failed: {exc}",
         ) from exc
 
     secure_url = upload_result.get("secure_url")
