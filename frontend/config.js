@@ -3,4 +3,4 @@ const API_BASE_URL =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
         ? "http://127.0.0.1:8000"
-        : "https://sweetroots-api.run.app";
+        : "https://sweetroots-api-844388900587.us-central1.run.app";
