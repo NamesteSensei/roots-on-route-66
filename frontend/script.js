@@ -1692,7 +1692,7 @@ function updatePlantStatusModal(plantId, currentStatus) {
     const statuses = [
         { value: '🌱 Propagating', label: '🌱 Propagating' },
         { value: '🌿 Growing Strong', label: '🌿 Growing Strong' },
-        { value: '🌸 Flowering', label: '🌸 Flowering' },
+        { value: '🍠 Rooting Up', label: '🍠 Rooting Up' },
         { value: '🍠 Ready to Harvest', label: '🍠 Ready to Harvest' },
         { value: '🎉 Harvested', label: '🎉 Harvested' }
     ];
@@ -2157,3 +2157,60 @@ Object.assign(window, {
 });
 
 document.body.style.opacity = '0';
+
+
+// ===== Phase E.2 Details Fallback =====
+window.openPlantDetails = window.openPlantDetails || function openPlantDetails(plantId) {
+    if (!plantId) {
+        showToast("Plant details are not available yet.", "error");
+        return;
+    }
+
+    const detailRoutes = [
+        `#plant-${plantId}`,
+        `#plant/${plantId}`,
+        `#details-${plantId}`
+    ];
+
+    const existingDetailFunction =
+        window.showPlantDetails ||
+        window.showPlantDetail ||
+        window.viewPlantDetails ||
+        window.viewPlant;
+
+    if (typeof existingDetailFunction === "function") {
+        existingDetailFunction(plantId);
+        return;
+    }
+
+    showToast("Details view is coming soon for this clipping.", "info");
+    console.info("Details requested for plant:", plantId, detailRoutes);
+};
+
+document.addEventListener("click", function handleDetailsClick(event) {
+    const button = event.target.closest("button, a");
+
+    if (!button) {
+        return;
+    }
+
+    const label = button.textContent.trim().toLowerCase();
+
+    if (label !== "details") {
+        return;
+    }
+
+    const card = button.closest("[data-plant-id], .plant-card, .gallery-item");
+    const plantId =
+        button.dataset.plantId ||
+        button.getAttribute("data-plant-id") ||
+        card?.dataset?.plantId ||
+        card?.getAttribute("data-plant-id");
+
+    if (!plantId) {
+        return;
+    }
+
+    event.preventDefault();
+    window.openPlantDetails(plantId);
+});
