@@ -38,3 +38,4 @@ audit_project_safe.py
 # Local audit and patch helper files
 patch_phase_c*
 
+patch_phase_d1_deploy_prep.py
