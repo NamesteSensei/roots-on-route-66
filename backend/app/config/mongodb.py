@@ -1,31 +1,17 @@
 """MongoDB connection and index setup for Roots on Route 66."""
 
-import os
-
-from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING, TEXT
 
-load_dotenv()
+from app.core.config import settings
 
-MONGO_URI = (
-    os.getenv("MONGODB_URI")
-    or os.getenv("MONGO_URI")
-    or "mongodb://localhost:27017"
-)
-
-DATABASE_NAME = (
-    os.getenv("MONGODB_DB_NAME")
-    or os.getenv("DATABASE_NAME")
-    or "roots_on_route_66"
-)
-
-client = AsyncIOMotorClient(MONGO_URI)
-database = client[DATABASE_NAME]
+client = AsyncIOMotorClient(settings.mongodb_uri)
+database = client[settings.mongodb_db_name]
 
 users_collection = database["users"]
 plants_collection = database["plants"]
 logs_collection = database["logs"]
+media_collection = database["media"]
 
 
 async def create_indexes() -> None:
@@ -68,4 +54,19 @@ async def create_indexes() -> None:
     await logs_collection.create_index(
         [("created_at", ASCENDING)],
         name="log_created_at",
+    )
+
+    await media_collection.create_index(
+        [("owner_id", ASCENDING)],
+        name="media_owner_id",
+    )
+
+    await media_collection.create_index(
+        [("plant_id", ASCENDING)],
+        name="media_plant_id",
+    )
+
+    await media_collection.create_index(
+        [("created_at", ASCENDING)],
+        name="media_created_at",
     )

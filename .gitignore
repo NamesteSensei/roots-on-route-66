@@ -32,3 +32,9 @@ node_modules/
 
 # Logs
 *.log
+safe_project_audit.txt
+audit_project_safe.py
+
+# Local audit and patch helper files
+patch_phase_c*
+

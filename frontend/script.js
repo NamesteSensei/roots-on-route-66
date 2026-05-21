@@ -56,12 +56,11 @@ async function initData() {
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
     }
-    mediaGallery = JSON.parse(localStorage.getItem('sweetroots_media') || '[]');
+    mediaGallery = [];
     qrScanCount = parseInt(localStorage.getItem('sweetroots_qrScanTotal') || '0');
 }
 
 function saveData() {
-    localStorage.setItem('sweetroots_media', JSON.stringify(mediaGallery));
     localStorage.setItem('sweetroots_qrScanTotal', qrScanCount.toString());
     if (currentUser) {
         localStorage.setItem('sweetroots_current_user', JSON.stringify(currentUser));
@@ -96,7 +95,6 @@ function showToast(message, type = 'success', duration = 4000) {
 }
 
 // ========== Authentication ==========
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 function getFirebaseAuth() {
     if (!window.firebaseAuthTools?.auth) {
@@ -169,8 +167,13 @@ async function syncCurrentUser(profileData = {}) {
         throw new Error("Please sign in first.");
     }
 
+    const savedUser = JSON.parse(
+        localStorage.getItem("sweetroots_current_user") || "{}"
+    );
+
     const fallbackUsername = (
         profileData.username ||
+        savedUser.username ||
         firebaseUser.displayName ||
         firebaseUser.email.split("@")[0] ||
         firebaseUser.uid
@@ -181,12 +184,32 @@ async function syncCurrentUser(profileData = {}) {
         .replace(/^_+|_+$/g, "");
 
     const payload = {
-        name: profileData.name || firebaseUser.displayName || firebaseUser.email.split("@")[0],
-        username: fallbackUsername || `grower_${firebaseUser.uid.slice(0, 8)}`,
-        zip_code: profileData.zipCode || profileData.zip_code || "",
-        bio: profileData.bio || "",
-        profile_picture: profileData.profile_picture || firebaseUser.photoURL || null
+        name:
+            profileData.name ||
+            savedUser.name ||
+            firebaseUser.displayName ||
+            firebaseUser.email.split("@")[0],
+
+        username:
+            fallbackUsername ||
+            `grower_${firebaseUser.uid.slice(0, 8)}`,
+
+        zip_code:
+            profileData.zipCode ||
+            profileData.zip_code ||
+            savedUser.zip_code ||
+            "",
+
+        bio:
+            profileData.bio ||
+            savedUser.bio ||
+            ""
     };
+
+    if (profileData.profile_picture || savedUser.profile_picture) {
+        payload.profile_picture =
+            profileData.profile_picture || savedUser.profile_picture;
+    }
 
     const syncedUser = await apiRequest("/users/sync", {
         method: "POST",
@@ -194,7 +217,12 @@ async function syncCurrentUser(profileData = {}) {
     });
 
     currentUser = normalizeUserProfile(syncedUser, firebaseUser);
-    localStorage.setItem("sweetroots_current_user", JSON.stringify(currentUser));
+
+    localStorage.setItem(
+        "sweetroots_current_user",
+        JSON.stringify(currentUser)
+    );
+
     return currentUser;
 }
 
@@ -534,36 +562,91 @@ async function performDeletePlant(plantId) {
     }
 }
 
+async function loadMediaGallery() {
+    try {
+        const mediaPosts = await apiRequest("/media/", {
+            method: "GET"
+        });
+
+        mediaGallery = mediaPosts.map(normalizeMediaPost);
+        return mediaGallery;
+    } catch (error) {
+        showToast(error.message || "Failed to load gallery", "error");
+        mediaGallery = [];
+        return [];
+    }
+}
+
+function normalizeMediaPost(media) {
+    return {
+        ...media,
+        id: media._id || media.id,
+        userId: media.owner_id || media.ownerId,
+        userName: media.owner_name || media.ownerName || "SweetRoots Grower",
+        userProfilePicture:
+            media.owner_profile_picture ||
+            media.ownerProfilePicture ||
+            null,
+        plantId: media.plant_id || media.plantId,
+        plantName: media.plant_name || media.plantName || "",
+        type: media.media_type || media.type || "image",
+        url: media.secure_url || media.url,
+        publicId: media.public_id || media.publicId,
+        caption: media.caption || "",
+        date: media.created_at || media.date
+    };
+}
+
 async function addProgressUpdate(plantId, note, mediaFile = null) {
     if (!currentUser) {
         showToast("Please sign in to add updates", "error");
         return false;
     }
 
-    let uploadedMedia = null;
-
-    if (mediaFile) {
-        uploadedMedia = await uploadImageToCloudinary(mediaFile);
+    if (!mediaFile) {
+        showToast("Please choose an image to upload", "warning");
+        return false;
     }
 
-    if (uploadedMedia && currentUser) {
-        mediaGallery.push({
-            id: `media_${Date.now()}`,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            plantId,
-            plantName: note,
-            type: "image",
-            url: uploadedMedia.secure_url,
-            publicId: uploadedMedia.public_id,
+    const uploadedMedia = await uploadImageToCloudinary(mediaFile);
+
+    const mediaPost = await apiRequest("/media/", {
+        method: "POST",
+        body: JSON.stringify({
+            plant_id: plantId,
+            plant_name: note,
             caption: note,
-            date: new Date().toISOString()
-        });
-    }
+            media_type: "image",
+            secure_url: uploadedMedia.secure_url,
+            public_id: uploadedMedia.public_id
+        })
+    });
 
-    saveData();
+    mediaGallery.unshift(normalizeMediaPost(mediaPost));
     showToast("Progress updated! 📸✨", "success");
     return true;
+}
+
+async function performDeleteMedia(mediaId) {
+    if (!mediaId || mediaId === "undefined") {
+        showToast("Post ID missing. Refresh and try again.", "error");
+        return false;
+    }
+
+    try {
+        await apiRequest(`/media/${mediaId}`, {
+            method: "DELETE"
+        });
+
+        mediaGallery = mediaGallery.filter((media) => media.id !== mediaId);
+        showToast("Post deleted 🗑️", "success");
+        await renderApp();
+
+        return true;
+    } catch (error) {
+        showToast(error.message || "Failed to delete post", "error");
+        return false;
+    }
 }
 
 // ========== Statistics ==========
@@ -1121,7 +1204,7 @@ async function renderDashboard() {
 }
 
 function renderGallery() {
-    const galleryItems = [...mediaGallery].reverse();
+    const galleryItems = [...mediaGallery];
 
     return `
         <main id="main-content" class="container" style="padding-top: 6rem;" role="main">
@@ -1175,11 +1258,16 @@ function renderGallery() {
                             </div>
                             <div style="padding: var(--space-md) var(--space-lg);">
                                 <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-sm);">
-                                    ${item.userName ? `
+                                    ${item.userProfilePicture ? `
+                                        <img src="${item.userProfilePicture}"
+                                             alt="${item.userName || 'Grower'} profile picture"
+                                             style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary); flex-shrink: 0;"
+                                             onerror="this.outerHTML='<div style=\'width:42px;height:42px;border-radius:50%;background:var(--color-primary-gradient);display:flex;align-items:center;justify-content:center;color:white;font-weight:750;font-size:1.05rem;flex-shrink:0;\'>${(item.userName || 'G')[0].toUpperCase()}</div>'">
+                                    ` : `
                                         <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--color-primary-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 750; font-size: 1.05rem; flex-shrink: 0;" aria-hidden="true">
-                                            ${item.userName[0].toUpperCase()}
+                                            ${(item.userName || 'G')[0].toUpperCase()}
                                         </div>
-                                    ` : ''}
+                                    `}
                                     <div>
                                         <div style="font-weight: 700; font-size: 1.075rem; color: var(--text-primary);">${item.userName || 'Anonymous Grower'}</div>
                                         <div style="font-size: 0.875rem; color: var(--text-muted);">${formatDate(item.date)}</div>
@@ -1329,6 +1417,10 @@ function showRegisterModal() {
                 <button type="submit" class="btn-register" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
                     <i class="fas fa-user-plus" aria-hidden="true"></i>
                     Create Account
+                </button>
+                <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
+                    <i class="fab fa-google" aria-hidden="true"></i>
+                    Sign up with Google
                 </button>
             </form>
         </div>
@@ -1808,17 +1900,26 @@ window.confirmDeletePlant = async (plantId) => {
     await performDeletePlant(plantId);
 };
 
-window.confirmDeleteMedia = (mediaId) => {
-    if (confirm('Delete this post from the community gallery? This cannot be undone.')) {
-        deleteMedia(mediaId);
+window.confirmDeleteMedia = async (mediaId) => {
+    if (!mediaId) {
+        showToast("Media ID missing.", "error");
+        return;
     }
+
+    const confirmed = confirm(
+        "Delete this post from the community gallery?\n\nThis cannot be undone."
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    await performDeleteMedia(mediaId);
 };
 
 window.deletePlant = performDeletePlant;
 
-window.deleteMedia = (mediaId) => {
-    confirmDeleteMedia(mediaId);
-};
+window.deleteMedia = performDeleteMedia;
 
 window.showAllChildren = async (parentId) => {
     await showAllChildren(parentId);
@@ -1951,6 +2052,7 @@ async function renderApp() {
             content = await renderDashboard();
             break;
         case 'gallery':
+            await loadMediaGallery();
             content = renderGallery();
             break;
         default:

@@ -108,6 +108,9 @@ async def sync_firebase_user(
     fallback_name = firebase_claims.get("name") or email.split("@")[0]
     profile_picture = firebase_claims.get("picture")
 
+    if existing_user and not update_data.get("profile_picture"):
+        update_data.pop("profile_picture", None)
+
     if existing_user:
         current_user_id = existing_user["_id"]
 

@@ -1,10 +1,11 @@
 """Firebase Admin SDK configuration for Roots on Route 66."""
 import json
-import os
 from typing import Any
 
 import firebase_admin
 from firebase_admin import auth, credentials
+
+from app.core.config import settings
 
 def initialize_firebase_app() -> firebase_admin.App:
     """
@@ -16,7 +17,7 @@ def initialize_firebase_app() -> firebase_admin.App:
     if firebase_admin._apps:  # pylint: disable=protected-access
         return firebase_admin.get_app()
 
-    service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    service_account_json = settings.firebase_service_account_json
     if not service_account_json:
         raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_JSON is not configured.")
 
