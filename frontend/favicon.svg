@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="potato" x1="10" y1="10" x2="54" y2="54">
+      <stop offset="0%" stop-color="#ff9f43"/>
+      <stop offset="55%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#162033"/>
+  <ellipse cx="32" cy="34" rx="16" ry="25" fill="url(#potato)" transform="rotate(38 32 34)"/>
+  <circle cx="24" cy="25" r="2.5" fill="#fed7aa" opacity="0.8"/>
+  <circle cx="35" cy="35" r="2" fill="#fed7aa" opacity="0.65"/>
+  <path d="M42 14c5-5 10-4 13-1-5 0-8 3-10 8z" fill="#22c55e"/>
+</svg>
