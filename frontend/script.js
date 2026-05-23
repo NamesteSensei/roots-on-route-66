@@ -1722,9 +1722,11 @@ async function openUploadModal() {
 
 function updatePlantStatusModal(plantId, currentStatus) {
     const statuses = [
-        { value: '🌱 Propagating', label: '🌱 Propagating' },
-        { value: '🌿 Growing Strong', label: '🌿 Growing Strong' },
-        { value: '🍠 Rooting Up', label: '🍠 Rooting Up' },
+        { value: '🌱 Rooting Up', label: '🌱 Rooting Up' },
+        { value: '🌿 Establishing', label: '🌿 Establishing' },
+        { value: '🍃 Vining Strong', label: '🍃 Vining Strong' },
+        { value: '🪴 Canopy Filling', label: '🪴 Canopy Filling' },
+        { value: '🥔 Tuber Building', label: '🥔 Tuber Building' },
         { value: '🍠 Harvest Ready', label: '🍠 Harvest Ready' },
         { value: '🎉 Harvested', label: '🎉 Harvested' }
     ];
