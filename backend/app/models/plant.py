@@ -24,7 +24,7 @@ class PlantModel(BaseModel):
     location: Optional[Location] = None
     location_name: Optional[str] = None
     location_history: list[Location] = Field(default_factory=list)
-    status: str = "🌱 Propagating"
+    status: str = "🌱 Rooting Up"
     quantity: int = 1
     generation: int = 0
     station_id: Optional[str] = None

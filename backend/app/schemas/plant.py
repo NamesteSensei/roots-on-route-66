@@ -7,10 +7,10 @@ from pydantic import BaseModel, Field
 
 
 PLANT_STATUSES: list[str] = [
-    "🌱 Propagating",
-    "🌿 Growing Strong",
+    "🌱 Rooting Up",
+    "🌿 Establishing",
     "🌸 Flowering",
-    "🍠 Ready to Harvest",
+    "🍠 Harvest Ready",
     "🎉 Harvested",
 ]
 
