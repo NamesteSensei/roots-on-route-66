@@ -1725,7 +1725,7 @@ function updatePlantStatusModal(plantId, currentStatus) {
         { value: '🌱 Propagating', label: '🌱 Propagating' },
         { value: '🌿 Growing Strong', label: '🌿 Growing Strong' },
         { value: '🍠 Rooting Up', label: '🍠 Rooting Up' },
-        { value: '🍠 Ready to Harvest', label: '🍠 Ready to Harvest' },
+        { value: '🍠 Harvest Ready', label: '🍠 Harvest Ready' },
         { value: '🎉 Harvested', label: '🎉 Harvested' }
     ];
 
