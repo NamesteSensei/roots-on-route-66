@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://roots-on-route-66.vercel.app/sitemap.xml

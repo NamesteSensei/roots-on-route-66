@@ -1,3 +1,8 @@
+
+function sweetrootsIsMobileAuthDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
 // ========== Sweet Potato Varieties Data ==========
 const SWEET_POTATO_VARIETIES = [
     { id: "beckas-purple", name: "Becka's Purple", flavor: "Sweet & earthy", harvestDays: 110, color: "Purple skin", origin: "Oklahoma", emoji: "🍠", description: "A beautiful purple-skinned variety with sweet, earthy flavor. Perfect for roasting and baking.", nutrition: "High in antioxidants", growing: "Thrives in warm climates" },
@@ -315,6 +320,11 @@ async function googleLogin() {
     try {
         const auth = getFirebaseAuth();
         const provider = window.firebaseAuthTools.googleProvider;
+
+        if (sweetrootsIsMobileAuthDevice()) {
+            await auth.signInWithRedirect(provider);
+            return;
+        }
 
         await auth.signInWithPopup(provider);
         await syncCurrentUser();
@@ -1086,17 +1096,21 @@ async function renderDashboard() {
             <section class="search-container" data-aos="fade-up" data-aos-delay="200" role="search" aria-label="Search your plants">
                 <div class="search-input-group">
                     <div class="search-input-wrapper">
-                        <i class="fas fa-search search-icon" aria-hidden="true"></i>
+                        <span class="search-icon" aria-hidden="true">🍠</span>
                         <input type="search"
                                class="search-input"
                                id="searchInput"
-                               placeholder="Search plants by name, status, or parent ID..."
+                               placeholder="Search varieties, growers, lineage, or harvest stages..."
                                value="${searchTerm}"
                                oninput="handleSearchInput()"
                                onkeydown="if(event.key==='Enter'){debouncedSearch.flush?.(); renderApp();}"
                                autocomplete="off"
                                aria-label="Search your plants"
                                aria-describedby="searchHint">
+                        <button class="search-clear-btn"
+                                type="button"
+                                onclick="sweetrootsClearSearch()"
+                                aria-label="Clear search">🥔</button>
                         <small id="searchHint" class="form-hint" style="margin-top: 4px; display: block;">
                             <i class="fas fa-info-circle" aria-hidden="true"></i> Search waits until you finish typing
                         </small>
@@ -2233,3 +2247,17 @@ document.addEventListener("click", function handleDetailsClick(event) {
     event.preventDefault();
     window.openPlantDetails(plantId);
 });
+
+
+
+function sweetrootsClearSearch() {
+    searchTerm = "";
+    const input = document.getElementById("searchInput");
+
+    if (input) {
+        input.value = "";
+        input.focus();
+    }
+
+    renderApp();
+}
