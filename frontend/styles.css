@@ -3344,3 +3344,274 @@ textarea {
         padding: 1.25rem !important;
     }
 }
+
+
+/* ===== Phase E.3 Fluid Mobile System ===== */
+
+:root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --fluid-page-padding: clamp(1rem, 3vw, 3rem);
+    --fluid-card-radius: clamp(1rem, 2vw, 2rem);
+    --fluid-gap: clamp(0.85rem, 2vw, 1.5rem);
+}
+
+html {
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: #162033;
+}
+
+body {
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: #162033;
+    padding-bottom: var(--safe-bottom);
+}
+
+#app,
+.page-transition,
+main {
+    min-height: 100dvh;
+    background: inherit;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+img,
+video,
+iframe,
+canvas,
+svg {
+    max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+
+button,
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-register,
+.btn-signin {
+    min-height: 48px;
+}
+
+input,
+select,
+textarea {
+    font-size: 16px;
+}
+
+/* Removes ugly native search X, replaces with sweet potato style */
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.35rem;
+    height: 1.35rem;
+    cursor: pointer;
+    background:
+        radial-gradient(circle at 42% 42%, #fed7aa 0 10%, transparent 11%),
+        radial-gradient(circle at 62% 58%, #fed7aa 0 8%, transparent 9%),
+        linear-gradient(135deg, #ff9f43 0%, #f97316 58%, #7c2d12 100%);
+    border-radius: 55% 45% 60% 40%;
+    transform: rotate(-28deg);
+    box-shadow: 0 0 0 2px rgba(255, 245, 200, 0.45);
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.container,
+.dashboard-section,
+.gallery-section,
+.plants-section {
+    width: 100%;
+    max-width: 1480px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--fluid-page-padding) !important;
+    padding-right: var(--fluid-page-padding) !important;
+}
+
+.stats-dashboard,
+.stats-grid,
+.hero-stats,
+.gallery-grid {
+    gap: var(--fluid-gap) !important;
+}
+
+.search-container {
+    width: min(100%, 1320px);
+    margin-left: auto;
+    margin-right: auto;
+    gap: var(--fluid-gap);
+    border-radius: var(--fluid-card-radius);
+}
+
+.search-container input,
+.search-container .search-input,
+input[type="search"] {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 999px;
+}
+
+.plant-card,
+.gallery-item,
+.stat-card,
+.stat-dashboard-card,
+.hero-stat,
+.modal-card,
+.modal-content {
+    border-radius: var(--fluid-card-radius);
+}
+
+.modal,
+.modal-overlay {
+    padding: var(--fluid-page-padding);
+}
+
+.modal-card,
+.modal-content {
+    width: min(94vw, 760px) !important;
+    max-height: 88dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Tablet layout */
+@media (max-width: 1024px) {
+    .stats-dashboard,
+    .stats-grid,
+    .hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .search-container {
+        display: grid !important;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+/* Phone layout */
+@media (max-width: 768px) {
+    .navbar {
+        position: sticky;
+        top: 0;
+        padding-top: max(0.75rem, var(--safe-top));
+    }
+
+    .nav-container {
+        min-height: 68px;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .logo span:last-child {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .search-container {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        padding: 1rem !important;
+    }
+
+    .search-container button,
+    .search-container .btn,
+    .search-container .btn-primary {
+        width: 100%;
+    }
+
+    .stats-dashboard,
+    .stats-grid,
+    .hero-stats,
+    .gallery-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .plant-card,
+    .gallery-item {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .action-buttons,
+    .plant-card-actions {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .action-buttons button,
+    .plant-card-actions button,
+    .plant-card .btn {
+        width: 100%;
+    }
+
+    .modal-card,
+    .modal-content {
+        width: 94vw !important;
+        max-height: 86dvh;
+        padding: 1.25rem !important;
+    }
+
+    .toast,
+    .toast-notification {
+        width: calc(100vw - 2rem) !important;
+        max-width: 420px;
+        left: 1rem !important;
+        right: 1rem !important;
+        bottom: calc(1rem + var(--safe-bottom)) !important;
+    }
+}
+
+/* Small phone layout */
+@media (max-width: 430px) {
+    .hero h1,
+    h1 {
+        font-size: clamp(2rem, 10vw, 3rem) !important;
+        line-height: 1.05;
+    }
+
+    h2 {
+        font-size: clamp(1.6rem, 8vw, 2.35rem) !important;
+    }
+
+    h3 {
+        font-size: clamp(1.25rem, 6vw, 1.7rem) !important;
+    }
+
+    .plant-card {
+        padding: 1rem !important;
+    }
+
+    .modal-card,
+    .modal-content {
+        padding: 1rem !important;
+    }
+}
