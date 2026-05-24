@@ -102,22 +102,6 @@ function showToast(message, type = 'success', duration = 4000) {
 // ========== Authentication ==========
 
 
-async function handleGoogleRedirectResult() {
-    const { auth } = getFirebaseAuth();
-
-    try {
-        const result = await auth.getRedirectResult();
-
-        if (result && result.user) {
-            await syncCurrentUser();
-            showToast("Signed in successfully 🌱", "success");
-            await renderApp();
-        }
-    } catch (error) {
-        console.error("Google redirect sign-in failed:", error);
-        showToast("Google sign-in did not finish. Please try again.", "error");
-    }
-}
 
 function getFirebaseAuth() {
     if (!window.firebaseAuthTools?.auth) {
@@ -2153,7 +2137,6 @@ async function renderApp() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initData();
-handleGoogleRedirectResult();
     await renderApp();
 
     document.addEventListener('keydown', (e) => {
