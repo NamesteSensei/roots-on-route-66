@@ -839,7 +839,20 @@ function closeMobileMenuOnLinkClick() {
     }
 }
 
-// ========== Render Functions ==========
+
+function loadEmbeddedVideo(button, src, title) {
+    const iframe = document.createElement("iframe");
+
+    iframe.src = src;
+    iframe.title = title;
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+    iframe.allowFullscreen = true;
+    iframe.loading = "lazy";
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+
+    button.replaceWith(iframe);
+}
+\n// ========== Render Functions ==========
 function renderNavbar() {
     return `
         <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
@@ -996,12 +1009,10 @@ async function renderHome() {
                         Classroom Learning
                     </h3>
                     <div class="video-container">
-                        <iframe src="https://drive.google.com/file/d/19W_jVw7V5lFeFTbGNCBTILhAHHuDgr0W/preview"
-                                title="Sweet Potato Growing Guide Video"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen
-                                loading="lazy"
-                                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        <button class="video-placeholder" onclick="loadEmbeddedVideo(this, 'https://drive.google.com/file/d/19W_jVw7V5lFeFTbGNCBTILhAHHuDgr0W/preview', 'Sweet Potato Growing Guide Video')">
+                                <span class="video-play-icon">▶</span>
+                                <span>Load Classroom Video</span>
+                            </button>
                     </div>
                     <a href="https://drive.google.com/uc?export=download&id=1zXxfJhyduRPyFMh4z9k4Za4q6PYKvmbq"
                        target="_blank"
@@ -1019,12 +1030,10 @@ async function renderHome() {
                         Propagation Station
                     </h3>
                     <div class="video-container">
-                        <iframe src="https://drive.google.com/file/d/1Gy3k1Hp8Bwzgy-VBuuJgvpud66xbKZ3y/preview"
-                                title="Tulsa Farmers Market Station Video"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen
-                                loading="lazy"
-                                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        <button class="video-placeholder" onclick="loadEmbeddedVideo(this, 'https://drive.google.com/file/d/1Gy3k1Hp8Bwzgy-VBuuJgvpud66xbKZ3y/preview', 'Tulsa Farmers Market Station Video')">
+                                <span class="video-play-icon">▶</span>
+                                <span>Load Station Video</span>
+                            </button>
                     </div>
                     <div style="background: var(--bg-card); padding: var(--space-md); border-radius: var(--radius-md); margin-top: var(--space-md); border-left: 4.5px solid var(--color-primary);">
                         <strong style="display: block; margin-bottom: var(--space-xs); font-size: 1.05rem;">📍 Tulsa Farmers Market Station</strong>

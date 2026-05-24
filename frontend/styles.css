@@ -4123,3 +4123,36 @@ body {
     font-size: 1.25rem !important;
     line-height: 1;
 }
+
+.video-placeholder {
+    width: 100%;
+    min-height: 280px;
+    border: 3px solid var(--color-primary);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, #0f172a, #1f2937);
+    color: #fff7ed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    font-size: 1.15rem;
+    font-weight: 800;
+    box-shadow: var(--shadow-lg);
+}
+
+.video-placeholder:hover {
+    transform: translateY(-2px);
+}
+
+.video-play-icon {
+    width: 74px;
+    height: 74px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 2rem;
+}
