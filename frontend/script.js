@@ -322,6 +322,7 @@ async function googleLogin() {
         const provider = window.firebaseAuthTools.googleProvider;
 
         if (sweetrootsIsMobileAuthDevice()) {
+            showToast("Opening Google sign-in...", "info");
             await auth.signInWithRedirect(provider);
             return;
         }
@@ -333,7 +334,17 @@ async function googleLogin() {
         closeModal();
         await renderApp();
     } catch (error) {
-        showToast(error.message || "Google sign-in failed", "error");
+        console.warn("Google sign-in error:", error);
+
+        if (
+            error.code === "auth/popup-closed-by-user" ||
+            error.code === "auth/cancelled-popup-request"
+        ) {
+            showToast("Google sign-in was cancelled.", "warning");
+            return;
+        }
+
+        showToast("Google sign-in could not finish. Please try again.", "error");
     }
 }
 
@@ -2261,23 +2272,30 @@ function sweetrootsClearSearch() {
 
 async function handleSweetRootsRedirectResult() {
     try {
+        const auth = getFirebaseAuth();
+
         if (!auth || typeof auth.getRedirectResult !== "function") {
             return;
         }
 
         const result = await auth.getRedirectResult();
 
-        if (result && result.user) {
-            showToast("Google sign-in complete.", "success");
-        }
-    } catch (error) {
-        console.warn("Redirect sign-in check:", error);
-
-        if (error.code === "auth/popup-closed-by-user") {
+        if (!result || !result.user) {
             return;
         }
 
-        if (error.code === "auth/cancelled-popup-request") {
+        await syncCurrentUser();
+
+        showToast(`Welcome, ${currentUser.name.split(" ")[0]}! 🌱`, "success");
+        closeModal();
+        await renderApp();
+    } catch (error) {
+        console.warn("Redirect sign-in check:", error);
+
+        if (
+            error.code === "auth/popup-closed-by-user" ||
+            error.code === "auth/cancelled-popup-request"
+        ) {
             return;
         }
 
