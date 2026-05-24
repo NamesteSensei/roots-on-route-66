@@ -347,6 +347,24 @@ async function logout() {
 window.logout = logout;
 window.googleLogin = googleLogin;
 
+if (!window.__sweetrootsAuthListenerReady) {
+    window.__sweetrootsAuthListenerReady = true;
+
+    getFirebaseAuth().onAuthStateChanged(async function handleAuthStateChanged(user) {
+        try {
+            if (!user) {
+                return;
+            }
+
+            await syncCurrentUser();
+            await renderApp();
+        } catch (error) {
+            console.warn("Auth state sync failed:", error);
+        }
+    });
+}
+
+
 function getCurrentUserId() {
     return currentUser?.id || currentUser?._id || null;
 }
