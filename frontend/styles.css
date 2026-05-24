@@ -3882,7 +3882,7 @@ body {
     overflow-x: hidden;
     min-height: 100dvh;
     background: #162033;
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: auto;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -4092,4 +4092,34 @@ body {
         width: 94vw !important;
         border-radius: 1.25rem !important;
     }
+}
+
+
+/* ===== Phase H.2 Scroll Repair ===== */
+
+html,
+body {
+    overflow-y: auto !important;
+    height: auto !important;
+}
+
+#app,
+.page-transition,
+.dashboard-section,
+.gallery-section,
+.plants-section,
+.container {
+    overflow: visible !important;
+}
+
+.my-garden,
+.plants-grid,
+.gallery-grid,
+.dashboard-content {
+    overflow: visible !important;
+}
+
+.search-icon {
+    font-size: 1.25rem !important;
+    line-height: 1;
 }

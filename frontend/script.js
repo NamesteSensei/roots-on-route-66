@@ -1107,7 +1107,7 @@ async function renderDashboard() {
             <section class="search-container" data-aos="fade-up" data-aos-delay="200" role="search" aria-label="Search your plants">
                 <div class="search-input-group">
                     <div class="search-input-wrapper">
-                        <i class="fas fa-search search-icon" aria-hidden="true"></i>
+                        <span class="search-icon" aria-hidden="true">🍠</span>
                         <input type="search"
                                class="search-input"
                                id="searchInput"
