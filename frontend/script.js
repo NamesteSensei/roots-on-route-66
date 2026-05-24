@@ -852,7 +852,7 @@ function loadEmbeddedVideo(button, src, title) {
 
     button.replaceWith(iframe);
 }
-\n// ========== Render Functions ==========
+// ========== Render Functions ==========
 function renderNavbar() {
     return `
         <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
