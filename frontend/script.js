@@ -301,16 +301,10 @@ async function register(userData) {
 }
 
 async function googleLogin() {
+    const auth = getFirebaseAuth();
+    const provider = window.firebaseAuthTools.googleProvider;
+
     try {
-        const auth = getFirebaseAuth();
-        const provider = window.firebaseAuthTools.googleProvider;
-
-        if (sweetrootsIsMobileAuthDevice()) {
-            showToast("Opening Google sign-in...", "info");
-            await auth.signInWithRedirect(provider);
-            return;
-        }
-
         await auth.signInWithPopup(provider);
         await syncCurrentUser();
 
@@ -321,9 +315,16 @@ async function googleLogin() {
         console.warn("Google sign-in error:", error);
 
         if (
-            error.code === "auth/popup-closed-by-user" ||
-            error.code === "auth/cancelled-popup-request"
+            error.code === "auth/popup-blocked" ||
+            error.code === "auth/cancelled-popup-request" ||
+            error.code === "auth/operation-not-supported-in-this-environment"
         ) {
+            showToast("Opening Google sign-in...", "info");
+            await auth.signInWithRedirect(provider);
+            return;
+        }
+
+        if (error.code === "auth/popup-closed-by-user") {
             showToast("Google sign-in was cancelled.", "warning");
             return;
         }
