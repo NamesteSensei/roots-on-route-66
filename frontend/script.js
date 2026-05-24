@@ -1096,24 +1096,17 @@ async function renderDashboard() {
             <section class="search-container" data-aos="fade-up" data-aos-delay="200" role="search" aria-label="Search your plants">
                 <div class="search-input-group">
                     <div class="search-input-wrapper">
-                        <span class="search-icon" aria-hidden="true">🍠</span>
+                        <i class="fas fa-search search-icon" aria-hidden="true"></i>
                         <input type="search"
                                class="search-input"
                                id="searchInput"
-                               placeholder="Search varieties, growers, lineage, or harvest stages..."
+                               placeholder="Search varieties, growers, lineage..."
                                value="${searchTerm}"
                                oninput="handleSearchInput()"
                                onkeydown="if(event.key==='Enter'){debouncedSearch.flush?.(); renderApp();}"
                                autocomplete="off"
                                aria-label="Search your plants"
-                               aria-describedby="searchHint">
-                        <button class="search-clear-btn"
-                                type="button"
-                                onclick="sweetrootsClearSearch()"
-                                aria-label="Clear search">🥔</button>
-                        <small id="searchHint" class="form-hint" style="margin-top: 4px; display: block;">
-                            <i class="fas fa-info-circle" aria-hidden="true"></i> Search waits until you finish typing
-                        </small>
+                               aria-label="Search varieties, growers, lineage, or harvest stages">
                     </div>
                     <button class="btn-primary" onclick="openAddPlantModal()" aria-label="Add new plant clipping to your garden">
                         <i class="fas fa-plus" aria-hidden="true"></i>
@@ -2263,3 +2256,33 @@ function sweetrootsClearSearch() {
 
     renderApp();
 }
+
+
+
+async function handleSweetRootsRedirectResult() {
+    try {
+        if (!auth || typeof auth.getRedirectResult !== "function") {
+            return;
+        }
+
+        const result = await auth.getRedirectResult();
+
+        if (result && result.user) {
+            showToast("Google sign-in complete.", "success");
+        }
+    } catch (error) {
+        console.warn("Redirect sign-in check:", error);
+
+        if (error.code === "auth/popup-closed-by-user") {
+            return;
+        }
+
+        if (error.code === "auth/cancelled-popup-request") {
+            return;
+        }
+
+        showToast("Google sign-in could not finish. Please try again.", "error");
+    }
+}
+
+handleSweetRootsRedirectResult();
