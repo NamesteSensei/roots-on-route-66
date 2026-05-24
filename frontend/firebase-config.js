@@ -1,6 +1,6 @@
 const firebaseConfig = {
     apiKey: "AIzaSyAW_Tkp795decIXCQll1Ko0GhT5Wd9MF4E",
-    authDomain: "roots-on-route-66.firebaseapp.com",
+    authDomain: "roots-on-route-66.vercel.app",
     projectId: "roots-on-route-66",
     storageBucket: "roots-on-route-66.firebasestorage.app",
     messagingSenderId: "844388900587",
