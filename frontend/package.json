@@ -5,5 +5,8 @@
   "description": "Static frontend for Roots on Route 66.",
   "scripts": {
     "check": "node --check script.js"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
   }
 }
