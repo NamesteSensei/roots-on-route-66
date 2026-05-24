@@ -877,18 +877,18 @@ function renderNavbar() {
                     ` : `
                         <div class="user-info">
                             <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to your SweetRoots account">
-                                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                                <span aria-hidden="true">🔐</span>
                                 Sign In
                             </button>
                             <button class="btn-register" onclick="showRegisterModal()" aria-label="Create a new SweetRoots account">
-                                <i class="fas fa-user-plus" aria-hidden="true"></i>
+                                <span aria-hidden="true">➕</span>
                                 Sign Up
                             </button>
                         </div>
                     `}
                 </div>
                 <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
-                    <i class="fas fa-bars" aria-hidden="true"></i>
+                    <span aria-hidden="true">☰</span><span class="sr-only">Menu</span>
                     <span class="sr-only">Menu</span>
                 </button>
             </div>
@@ -1266,7 +1266,7 @@ function renderGallery() {
                     </button>
                 ` : `
                     <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to share your sweet potato journey">
-                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                        <span aria-hidden="true">🔐</span>
                         Sign in to share your journey
                     </button>
                 `}
@@ -1417,11 +1417,11 @@ function showLoginModal() {
                     <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="••••••••" style="font-size: 1.075rem;">
                 </div>
                 <button type="submit" class="btn-primary" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
-                    <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                    <span aria-hidden="true">🔐</span>
                     Sign In
                 </button>
                 <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
-                    <i class="fab fa-google" aria-hidden="true"></i>
+                    <span aria-hidden="true">G</span>
                     Continue with Google
                 </button>
             </form>
@@ -1463,11 +1463,11 @@ function showRegisterModal() {
                     <small class="form-hint">Must be at least 6 characters</small>
                 </div>
                 <button type="submit" class="btn-register" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
-                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    <span aria-hidden="true">➕</span>
                     Create Account
                 </button>
                 <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
-                    <i class="fab fa-google" aria-hidden="true"></i>
+                    <span aria-hidden="true">G</span>
                     Sign up with Google
                 </button>
             </form>
