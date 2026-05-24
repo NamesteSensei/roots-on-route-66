@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
 
     <meta name="description" content="SweetRoots is a Front Yard Farms digital grow platform for sweet potato lineage, propagation tracking, QR sharing, and mobile garden records.">
@@ -29,6 +31,9 @@
     <meta name="twitter:description" content="Sweet potato lineage and grow tracking by Front Yard Farms.">
     <meta name="twitter:image" content="https://roots-on-route-66.vercel.app/og-image.png">
     <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SweetRoots">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <!-- Vercel Speed Insights -->
     <script>
@@ -65,5 +70,13 @@
     <script src="firebase-config.js"></script>
     <script src="config.js"></script>
     <script src="script.js?v=20260520h"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/service-worker.js")
+                    .catch((error) => console.warn("Service worker registration failed:", error));
+            });
+        }
+    </script>
 </body>
 </html>
