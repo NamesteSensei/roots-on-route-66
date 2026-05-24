@@ -1674,7 +1674,7 @@
 
         .plant-status[data-status*="Propagating"] { background: var(--status-info); box-shadow: 0 3px 10px rgba(59, 130, 246, 0.32); }
         .plant-status[data-status*="Growing"] { background: var(--status-success); }
-        .plant-status[data-status*="Rooting Up"] { background: #8b5cf6; box-shadow: 0 3px 10px rgba(139, 92, 246, 0.32); }
+        .plant-status[data-status*="Propagating"] { background: #8b5cf6; box-shadow: 0 3px 10px rgba(139, 92, 246, 0.32); }
         .plant-status[data-status*="Harvest"] { background: var(--color-primary); }
         .plant-status[data-status*="Harvested"] { background: var(--text-muted); }
 

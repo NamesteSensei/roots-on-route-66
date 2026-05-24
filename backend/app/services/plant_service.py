@@ -48,7 +48,7 @@ async def create_plant(data: PlantCreate) -> PlantResponse:
     document = data.model_dump(by_alias=False)
     document["quantity"] = _safe_quantity(document.get("quantity"))
     document["generation"] = 0
-    document["status"] = "🌱 Rooting Up"
+    document["status"] = "🌱 Propagating"
     document["location_history"] = []
     document["created_at"] = now
     document["updated_at"] = now
@@ -79,7 +79,7 @@ async def create_clipping(data: ClippingCreate) -> PlantResponse:
     )
     document["quantity"] = _safe_quantity(document.get("quantity"))
     document["generation"] = parent.get("generation", 0) + 1
-    document["status"] = "🌱 Rooting Up"
+    document["status"] = "🌱 Propagating"
     document["location_history"] = parent.get("location_history", [])
     document["created_at"] = now
     document["updated_at"] = now
