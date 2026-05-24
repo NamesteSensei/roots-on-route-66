@@ -862,9 +862,9 @@ function renderNavbar() {
                     <span>SweetRoots</span>
                 </a>
                 <div class="nav-links" id="navLinks">
-                    <a onclick="navigateTo('home'); closeMobileMenuOnLinkClick();" class="${currentPage === 'home' ? 'active' : ''}" role="link" aria-current="${currentPage === 'home' ? 'page' : 'false'}">Home</a>
-                    <a onclick="navigateTo('dashboard'); closeMobileMenuOnLinkClick();" class="${currentPage === 'dashboard' ? 'active' : ''}" role="link" aria-current="${currentPage === 'dashboard' ? 'page' : 'false'}">Dashboard</a>
-                    <a onclick="navigateTo('gallery'); closeMobileMenuOnLinkClick();" class="${currentPage === 'gallery' ? 'active' : ''}" role="link" aria-current="${currentPage === 'gallery' ? 'page' : 'false'}">Gallery</a>
+                    <a onclick="navigateTo('home'); closeMobileMenuOnLinkClick();" class="${currentPage === 'home' ? 'active' : ''}" role="link" aria-label="Main navigation home" aria-current="${currentPage === 'home' ? 'page' : 'false'}">Home</a>
+                    <a onclick="navigateTo('dashboard'); closeMobileMenuOnLinkClick();" class="${currentPage === 'dashboard' ? 'active' : ''}" role="link" aria-label="Main navigation dashboard" aria-current="${currentPage === 'dashboard' ? 'page' : 'false'}">Dashboard</a>
+                    <a onclick="navigateTo('gallery'); closeMobileMenuOnLinkClick();" class="${currentPage === 'gallery' ? 'active' : ''}" role="link" aria-label="Main navigation gallery" aria-current="${currentPage === 'gallery' ? 'page' : 'false'}">Gallery</a>
                     ${currentUser ? `
                         <div class="user-info">
                             ${currentUser.profile_picture ?
@@ -1354,9 +1354,9 @@ function renderFooter() {
                 </div>
                 <div class="footer-section">
                     <h4>Quick Links</h4>
-                    <a onclick="navigateTo('home'); closeMobileMenuOnLinkClick();" role="link">Home</a>
-                    <a onclick="navigateTo('dashboard'); closeMobileMenuOnLinkClick();" role="link">Dashboard</a>
-                    <a onclick="navigateTo('gallery'); closeMobileMenuOnLinkClick();" role="link">Gallery</a>
+                    <a onclick="navigateTo('home'); closeMobileMenuOnLinkClick();" role="link" aria-label="Footer home link">Home</a>
+                    <a onclick="navigateTo('dashboard'); closeMobileMenuOnLinkClick();" role="link" aria-label="Footer dashboard link">Dashboard</a>
+                    <a onclick="navigateTo('gallery'); closeMobileMenuOnLinkClick();" role="link" aria-label="Footer gallery link">Gallery</a>
                     <a href="#" onclick="exportData(); return false;">Export My Data</a>
                 </div>
                 <div class="footer-section">

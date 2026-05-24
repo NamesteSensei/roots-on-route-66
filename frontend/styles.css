@@ -4156,3 +4156,30 @@ body {
     place-items: center;
     font-size: 2rem;
 }
+
+/* Accessibility polish */
+.skip-link {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 99999;
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #fff7ed;
+    font-weight: 800;
+    text-decoration: none;
+    transform: translateY(-160%);
+    transition: transform 0.2s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 4px solid #f97316;
+    outline-offset: 4px;
+}
+
+#app:focus {
+    outline: none;
+}
