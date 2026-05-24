@@ -2196,7 +2196,7 @@ Object.assign(window, {
     _debouncedSearch: debouncedSearch
 });
 
-document.body.style.opacity = '0';
+document.body.style.opacity = '1';
 
 
 // ===== Phase E.2 Details Fallback =====
