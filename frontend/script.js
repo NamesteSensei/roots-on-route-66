@@ -469,7 +469,7 @@ async function createPlant(varietyId, parentId = null) {
         owner_id: currentUserId,
         location: { lat: 0, lng: 0 },
         location_name: "",
-        status: "🌱 Propagating",
+        status: "🌱 Propagatingg",
         quantity: 1,
         notes: variety.description || "",
         image_url: null
@@ -1166,7 +1166,7 @@ async function renderDashboard() {
                                             Owner: <strong>${plant.ownerName || 'SweetRoots Grower'}</strong>
                                         </div>
                                         <div class="plant-id">ID: ${plant.id}</div>
-                                        <div class="plant-status" data-status="${plant.status || '🌱 Propagating'}">${plant.status || '🌱 Propagating'}</div>
+                                        <div class="plant-status" data-status="${plant.status || '🌱 Propagatingg'}">${plant.status || '🌱 Propagatingg'}</div>
                                     </div>
                                     ${(!currentUser || plant.owner_id === getCurrentUserId()) ? `
                                         <button class="btn-danger" onclick="confirmDeletePlant('${plant.id}')" aria-label="Delete ${plant.name}" title="Delete plant">✕</button>
@@ -1551,7 +1551,7 @@ async function showPlantDetails(plantId) {
                 <div style="margin-top: var(--space-md); line-height: 1.7; font-size: 1.075rem;">
                     <p><strong>📅 Created:</strong> ${formatDate(plant.created_at)}</p>
                     <p><strong>🔄 Last Update:</strong> ${formatDate(plant.updated_at)}</p>
-                    <p><strong>🌿 Status:</strong> ${plant.status || '🌱 Propagating'}</p>
+                    <p><strong>🌿 Status:</strong> ${plant.status || '🌱 Propagatingg'}</p>
                     <p><strong>👨‍👦 Parent ID:</strong> ${plant.parentPlantId || 'Mother Plant (Original)'}</p>
                     <p><strong>📊 Generation:</strong> ${plant.generation || 0}</p>
                     <p><strong>👶 Children:</strong> ${children.length}</p>
@@ -1594,7 +1594,7 @@ async function showAllChildren(parentId) {
                             <div>
                                 <strong style="display: block; margin-bottom: var(--space-xs); font-size: 1.125rem;">${child.name}</strong>
                                 <small style="color: var(--text-muted); font-size: 0.975rem;">
-                                    ID: ${child.id} • Gen: ${child.generation || 0} • ${child.status || '🌱 Propagating'}
+                                    ID: ${child.id} • Gen: ${child.generation || 0} • ${child.status || '🌱 Propagatingg'}
                                 </small>
                             </div>
                         </div>
@@ -1726,7 +1726,7 @@ async function openUploadModal() {
 
 function updatePlantStatusModal(plantId, currentStatus) {
     const statuses = [
-        { value: '🌱 Propagating', label: '🌱 Propagating' },
+        { value: '🌱 Propagatingg', label: '🌱 Propagatingg' },
         { value: '🌿 Establishing', label: '🌿 Establishing' },
         { value: '🍃 Vining Strong', label: '🍃 Vining Strong' },
         { value: '🪴 Canopy Filling', label: '🪴 Canopy Filling' },
