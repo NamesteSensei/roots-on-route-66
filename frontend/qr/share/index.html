@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Opening SweetRoots...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-8TZ0K9ZWXK"
+    ></script>
+
+    <script>
+      window.dataLayer = window.dataLayer || [];
+
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+
+      gtag("js", new Date());
+      gtag("config", "G-8TZ0K9ZWXK");
+
+      gtag("event", "qr_scan", {
+        event_category: "marketing",
+        event_label: "sweetroots_share_qr",
+        campaign: "sweetroots_marketing",
+        source: "qr_code",
+      });
+
+      setTimeout(function () {
+        window.location.replace("/");
+      }, 800);
+    </script>
+  </head>
+
+  <body>
+    <p>Opening SweetRoots...</p>
+  </body>
+</html>

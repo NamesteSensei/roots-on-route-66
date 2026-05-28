@@ -39,3 +39,6 @@ audit_project_safe.py
 patch_phase_c*
 
 patch_phase_d1_deploy_prep.py
+
+# Generated QR exports
+marketing/qr_codes/generated/*.png
