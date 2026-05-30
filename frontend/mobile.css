@@ -20,7 +20,13 @@ html {
 
 body {
   min-width: 0;
-  overscroll-behavior-y: contain;
+}
+
+html,
+body,
+#app {
+  height: auto;
+  overflow-y: auto;
 }
 
 button,
@@ -85,9 +91,11 @@ iframe {
 
   .navbar {
     padding-top: max(0.75rem, var(--mobile-safe-top)) !important;
-    background: rgba(255, 251, 235, 0.94) !important;
-    backdrop-filter: blur(22px) saturate(1.15) !important;
-    -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
+    background: rgba(255, 251, 235, 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 14px rgba(120, 53, 15, 0.08) !important;
+    contain: paint;
   }
 
   .nav-container {
@@ -105,7 +113,7 @@ iframe {
     min-width: var(--mobile-touch-target) !important;
     border-radius: 999px !important;
     background: rgba(255, 255, 255, 0.82) !important;
-    box-shadow: 0 10px 28px rgba(120, 53, 15, 0.16) !important;
+    box-shadow: 0 4px 14px rgba(120, 53, 15, 0.12) !important;
   }
 
   .nav-links.mobile-open {
@@ -118,10 +126,12 @@ iframe {
     overflow-y: auto !important;
     padding: 1rem !important;
     border-radius: 24px !important;
-    background: var(--mobile-glass) !important;
-    backdrop-filter: blur(24px) saturate(1.2) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.2) !important;
-    box-shadow: 0 26px 70px rgba(120, 53, 15, 0.28) !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 12px 32px rgba(120, 53, 15, 0.16) !important;
+    -webkit-overflow-scrolling: touch;
+    contain: paint;
   }
 
   .nav-links.mobile-open a,
@@ -217,7 +227,7 @@ iframe {
   .variety-card,
   .profile-card {
     border-radius: var(--mobile-card-radius) !important;
-    box-shadow: 0 16px 42px rgba(120, 53, 15, 0.13) !important;
+    box-shadow: 0 8px 22px rgba(120, 53, 15, 0.1) !important;
   }
 
   .plant-card,
@@ -260,6 +270,12 @@ iframe {
   .modal,
   .modal-overlay {
     align-items: flex-end !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(15, 23, 42, 0.72) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
     padding:
       max(0.75rem, var(--mobile-safe-top))
       max(0.75rem, var(--mobile-safe-right))
@@ -270,8 +286,9 @@ iframe {
   .modal-content,
   .modal-card {
     width: 100% !important;
-    max-width: none !important;
+    max-width: calc(100vw - 2rem) !important;
     max-height: calc(92dvh - var(--mobile-safe-top) - var(--mobile-safe-bottom)) !important;
+    overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     border-radius: 28px 28px 20px 20px !important;
@@ -308,10 +325,11 @@ iframe {
     padding: 0.45rem;
     border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 24px 64px rgba(120, 53, 15, 0.25);
-    backdrop-filter: blur(24px) saturate(1.2);
-    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 28px rgba(120, 53, 15, 0.16);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    contain: paint;
   }
 
   .mobile-bottom-nav__item {
@@ -340,7 +358,7 @@ iframe {
   .mobile-bottom-nav__item.is-active {
     color: #ffffff;
     background: linear-gradient(135deg, #f59e0b, #ea580c, #f97316);
-    box-shadow: 0 12px 24px rgba(234, 88, 12, 0.28);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.22);
   }
 
   .mobile-install-banner {
@@ -356,11 +374,12 @@ iframe {
     padding: 0.85rem;
     border: 1px solid rgba(245, 158, 11, 0.22);
     border-radius: 20px;
-    background: rgba(255, 251, 235, 0.95);
+    background: rgba(255, 251, 235, 0.99);
     color: #7c2d12;
-    box-shadow: 0 20px 54px rgba(120, 53, 15, 0.22);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 24px rgba(120, 53, 15, 0.14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    contain: paint;
   }
 
   .mobile-install-banner[hidden] {
@@ -449,7 +468,7 @@ iframe {
     .mobile-bottom-nav,
     .mobile-install-banner,
     .nav-links.mobile-open {
-      background: rgba(15, 23, 42, 0.9) !important;
+      background: rgba(15, 23, 42, 0.98) !important;
       border-color: rgba(251, 146, 60, 0.24) !important;
     }
 
@@ -463,6 +482,52 @@ iframe {
     .mobile-menu-btn {
       background: rgba(30, 41, 59, 0.86) !important;
     }
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  .auth-modal {
+    width: 100% !important;
+    max-width: calc(100vw - 2rem) !important;
+    padding: 1rem !important;
+  }
+
+  .auth-title {
+    margin-bottom: 1rem !important;
+    padding-right: 2.75rem;
+    font-size: 1.45rem !important;
+    text-align: left;
+  }
+
+  .auth-form {
+    gap: 0.85rem;
+  }
+
+  .auth-form .form-group label {
+    margin-bottom: 0.4rem;
+    font-size: 0.92rem;
+  }
+
+  .auth-form input {
+    width: 100% !important;
+    min-height: 46px !important;
+    padding: 0.75rem 0.9rem !important;
+  }
+
+  .auth-submit-btn,
+  .btn-google {
+    width: 100% !important;
+    min-height: 48px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .auth-switch {
+    margin-top: 1rem !important;
+    font-size: 0.95rem !important;
   }
 }
 

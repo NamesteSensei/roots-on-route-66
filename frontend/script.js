@@ -876,14 +876,8 @@ function renderNavbar() {
                         </div>
                     ` : `
                         <div class="user-info">
-                            <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to your SweetRoots account">
-                                <span aria-hidden="true">🔐</span>
-                                Sign In
-                            </button>
-                            <button class="btn-register" onclick="showRegisterModal()" aria-label="Create a new SweetRoots account">
-                                <span aria-hidden="true">➕</span>
-                                Sign Up
-                            </button>
+                            <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to your SweetRoots account">Sign in</button>
+                            <button class="btn-register" onclick="showRegisterModal()" aria-label="Create a new SweetRoots account">Create account</button>
                         </div>
                     `}
                 </div>
@@ -1265,10 +1259,7 @@ function renderGallery() {
                         Share Your Story
                     </button>
                 ` : `
-                    <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to share your sweet potato journey">
-                        <span aria-hidden="true">🔐</span>
-                        Sign in to share your journey
-                    </button>
+                    <button class="btn-signin" onclick="showLoginModal()" aria-label="Sign in to share your sweet potato journey">Sign in to share your journey</button>
                 `}
             </header>
 
@@ -1400,14 +1391,21 @@ function renderFooter() {
     `;
 }
 
+const GOOGLE_G_ICON = `
+    <svg class="google-g-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+    </svg>`;
+
 // ========== Modal Functions ==========
 function showLoginModal() {
     openModal(`
-        <div class="modal-content">
+        <div class="modal-content auth-modal">
             <button class="modal-close" onclick="closeModal()" aria-label="Close sign in modal">&times;</button>
-            <h3 style="margin-bottom: var(--space-lg); text-align: center; font-size: 1.8rem;">Sign In to SweetRoots</h3>
-            <p style="text-align: center; color: var(--text-muted); margin-bottom: var(--space-xl); font-size: 1.075rem;">Access your garden and share your journey</p>
-            <form onsubmit="handleLogin(event); return false;" aria-label="Login form">
+            <h3 class="auth-title">Sign in to SweetRoots</h3>
+            <form class="auth-form" onsubmit="handleLogin(event); return false;" aria-label="Login form">
                 <div class="form-group">
                     <label for="loginEmail">Email Address</label>
                     <input type="email" id="loginEmail" required autocomplete="email" placeholder="you@example.com" style="font-size: 1.075rem;">
@@ -1416,18 +1414,15 @@ function showLoginModal() {
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="••••••••" style="font-size: 1.075rem;">
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
-                    <span aria-hidden="true">🔐</span>
-                    Sign In
-                </button>
-                <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
-                    <span aria-hidden="true">G</span>
-                    Continue with Google
+                <button type="submit" class="btn-primary auth-submit-btn">Sign in</button>
+                <button type="button" class="btn-google" onclick="googleLogin()">
+                    ${GOOGLE_G_ICON}
+                    <span>Continue with Google</span>
                 </button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-xl); color: var(--text-muted); font-size: 1.025rem;">
+            <p class="auth-switch">
                 Don't have an account?
-                <a href="#" onclick="closeModal(); showRegisterModal(); return false;" style="color: var(--color-primary); font-weight: 650; text-decoration: none;">Create one</a>
+                <a href="#" onclick="closeModal(); showRegisterModal(); return false;">Create one</a>
             </p>
         </div>
     `);
@@ -1435,11 +1430,10 @@ function showLoginModal() {
 
 function showRegisterModal() {
     openModal(`
-        <div class="modal-content">
+        <div class="modal-content auth-modal">
             <button class="modal-close" onclick="closeModal()" aria-label="Close registration modal">&times;</button>
-            <h3 style="margin-bottom: var(--space-lg); text-align: center; font-size: 1.8rem;">Create Your Account</h3>
-            <p style="text-align: center; color: var(--text-muted); margin-bottom: var(--space-xl); font-size: 1.075rem;">Join our growing community of sweet potato enthusiasts</p>
-            <form onsubmit="handleRegister(event); return false;" aria-label="Registration form">
+            <h3 class="auth-title">Create account</h3>
+            <form class="auth-form" onsubmit="handleRegister(event); return false;" aria-label="Registration form">
                 <div class="form-group">
                     <label for="regName">Full Name</label>
                     <input type="text" id="regName" required autocomplete="name" placeholder="Jane Doe" style="font-size: 1.075rem;">
@@ -1447,7 +1441,6 @@ function showRegisterModal() {
                 <div class="form-group">
                     <label for="regUsername">Username</label>
                     <input type="text" id="regUsername" required pattern="[a-zA-Z0-9_]{3,20}" placeholder="jane_grower" style="font-size: 1.075rem;">
-                    <small class="form-hint">This will be displayed on your plants</small>
                 </div>
                 <div class="form-group">
                     <label for="regEmail">Email Address</label>
@@ -1460,15 +1453,11 @@ function showRegisterModal() {
                 <div class="form-group">
                     <label for="regPassword">Password</label>
                     <input type="password" id="regPassword" required minlength="6" autocomplete="new-password" placeholder="••••••••" style="font-size: 1.075rem;">
-                    <small class="form-hint">Must be at least 6 characters</small>
                 </div>
-                <button type="submit" class="btn-register" style="width: 100%; font-size: 1.125rem; padding: var(--space-md);">
-                    <span aria-hidden="true">➕</span>
-                    Create Account
-                </button>
-                <button type="button" class="btn-secondary" onclick="googleLogin()" style="width: 100%; font-size: 1.125rem; padding: var(--space-md); margin-top: var(--space-md);">
-                    <span aria-hidden="true">G</span>
-                    Sign up with Google
+                <button type="submit" class="btn-register auth-submit-btn">Create account</button>
+                <button type="button" class="btn-google" onclick="googleLogin()">
+                    ${GOOGLE_G_ICON}
+                    <span>Continue with Google</span>
                 </button>
             </form>
         </div>
