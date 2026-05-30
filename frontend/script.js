@@ -881,10 +881,15 @@ function renderNavbar() {
                         </div>
                     `}
                 </div>
-                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
-                    <span aria-hidden="true">☰</span><span class="sr-only">Menu</span>
-                    <span class="sr-only">Menu</span>
-                </button>
+                <div class="mobile-nav-actions" aria-label="Mobile account actions">
+                    ${currentUser ? `
+                        <span class="mobile-user-name">${currentUser.name.split(' ')[0]}</span>
+                        <button class="btn-logout mobile-signout-btn" onclick="logout()" aria-label="Sign out of your account">Sign out</button>
+                    ` : `
+                        <button class="btn-signin mobile-signin-btn" onclick="showLoginModal()" aria-label="Sign in to your SweetRoots account">Sign in</button>
+                        <button class="btn-register mobile-create-account-btn" onclick="showRegisterModal()" aria-label="Create a new SweetRoots account">Create account</button>
+                    `}
+                </div>
             </div>
         </nav>
     `;
