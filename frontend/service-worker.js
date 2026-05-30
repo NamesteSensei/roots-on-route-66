@@ -1,4 +1,4 @@
-const CACHE_NAME = "sweetroots-v1";
+const CACHE_NAME = "sweetroots-v3";
 
 const CORE_ASSETS = [
   "/",
@@ -7,11 +7,73 @@ const CORE_ASSETS = [
   "/script.js",
   "/config.js",
   "/firebase-config.js",
-  "/manifest.json",
+  "/manifest.webmanifest",
+  "/mobile.css",
+  "/mobile.js",
+  "/offline.html",
   "/og-image.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ];
+
+const BYPASS_PATH_PREFIXES = [
+  "/__/auth",
+  "/api",
+  "/auth",
+  "/user",
+  "/users",
+  "/plant",
+  "/plants",
+  "/media",
+  "/upload",
+  "/uploads"
+];
+
+const CACHEABLE_STATIC_EXTENSIONS = [
+  ".css",
+  ".html",
+  ".ico",
+  ".jpg",
+  ".jpeg",
+  ".js",
+  ".json",
+  ".png",
+  ".svg",
+  ".webmanifest",
+  ".webp"
+];
+
+function isSameOriginRequest(request) {
+  return new URL(request.url).origin === self.location.origin;
+}
+
+function shouldBypassRequest(request) {
+  const url = new URL(request.url);
+
+  if (request.method !== "GET") {
+    return true;
+  }
+
+  if (url.origin !== self.location.origin) {
+    return true;
+  }
+
+  return BYPASS_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+}
+
+function isCacheableStaticRequest(request) {
+  const url = new URL(request.url);
+
+  if (!isSameOriginRequest(request)) {
+    return false;
+  }
+
+  if (request.mode === "navigate") {
+    return true;
+  }
+
+  return CACHEABLE_STATIC_EXTENSIONS.some((extension) => url.pathname.endsWith(extension));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,21 +96,39 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
+  const request = event.request;
+
+  if (shouldBypassRequest(request)) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const clonedResponse = response.clone();
+  const isNavigationRequest = request.mode === "navigate";
 
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, clonedResponse);
-        });
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (response && response.ok && isCacheableStaticRequest(request)) {
+          const clonedResponse = response.clone();
+
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, clonedResponse);
+          });
+        }
 
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cachedResponse = await caches.match(request);
+
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        if (isNavigationRequest) {
+          return caches.match("/offline.html");
+        }
+
+        return Response.error();
+      })
   );
 });

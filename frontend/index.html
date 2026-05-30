@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>SweetRoots Platform | Front Yard Farms</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,8 +12,9 @@
     
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="mobile.css">
 
     <meta name="description" content="SweetRoots is a Front Yard Farms digital grow platform for sweet potato lineage, propagation tracking, QR sharing, and mobile garden records.">
     <meta name="keywords" content="Front Yard Farms, SweetRoots, sweet potatoes, sweet potato varieties, plant lineage, propagation tracking, Tulsa urban farming">
@@ -87,6 +88,7 @@
     <script defer src="firebase-config.js"></script>
     <script defer src="config.js"></script>
     <script defer src="script.js?v=20260520h"></script>
+    <script defer src="mobile.js"></script>
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f97316">
+  <title>Offline | SweetRoots</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --orange: #f97316;
+      --amber: #f59e0b;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --paper: #fffbeb;
+      --card: rgba(255, 255, 255, 0.92);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      background:
+        radial-gradient(circle at 20% 20%, rgba(245, 158, 11, 0.24), transparent 32rem),
+        linear-gradient(135deg, var(--paper), #fde68a);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 34rem);
+      padding: clamp(1.4rem, 7vw, 2.5rem);
+      border: 1px solid rgba(249, 115, 22, 0.24);
+      border-radius: 2rem;
+      background: var(--card);
+      box-shadow: 0 24px 70px rgba(120, 53, 15, 0.22);
+      text-align: center;
+    }
+
+    .icon {
+      width: 5rem;
+      height: 5rem;
+      margin: 0 auto 1rem;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--amber), var(--orange));
+      color: #fff7ed;
+      font-size: 2.25rem;
+      box-shadow: 0 18px 40px rgba(249, 115, 22, 0.3);
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(2rem, 9vw, 3rem);
+      line-height: 1;
+    }
+
+    p {
+      margin: 0 auto 1.5rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    a, button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 1.2rem;
+      background: var(--orange);
+      color: #fff7ed;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #fff7ed;
+        --muted: #fed7aa;
+        --paper: #0f172a;
+        --card: rgba(15, 23, 42, 0.9);
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.22), transparent 32rem),
+          linear-gradient(135deg, #0f172a, #1f2937);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon" aria-hidden="true">🍠</div>
+    <h1>You're offline</h1>
+    <p>SweetRoots saved the app shell, but this page needs a connection. Check your network and your garden will reconnect automatically when you're back online.</p>
+    <button type="button" onclick="window.location.reload()">Try again</button>
+  </main>
+</body>
+</html>
