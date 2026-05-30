@@ -457,7 +457,66 @@ iframe {
     display: none !important;
   }
 }
+/* Mobile top account actions replace the hamburger drawer; bottom nav owns page navigation. */
+.mobile-nav-actions {
+  display: none;
+}
 
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+
+  .nav-links,
+  .nav-links.mobile-open {
+    display: none !important;
+  }
+
+  .mobile-nav-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .mobile-user-name {
+    max-width: 22vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .mobile-nav-actions .btn-signin,
+  .mobile-nav-actions .btn-register,
+  .mobile-nav-actions .btn-logout {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 0.5rem 0.55rem !important;
+    border-radius: 999px !important;
+    font-size: 0.82rem !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .mobile-nav-actions .btn-signin:hover,
+  .mobile-nav-actions .btn-register:hover,
+  .mobile-nav-actions .btn-logout:hover {
+    transform: none !important;
+  }
+
+  .mobile-signout-btn {
+    text-transform: none;
+  }
+}
 @media (prefers-color-scheme: dark) {
   :root {
     --mobile-glass: rgba(15, 23, 42, 0.9);
