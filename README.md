@@ -1,211 +1,160 @@
-# 🍠 SweetRoots — Roots on Route 66
+# SweetRoots / Roots on Route 66 🌱
 
-A community-powered sweet potato plant tracking web application that allows users to track plant lineage, take clippings, and share their growing journey.
+**Community plant-lineage tracking | Full-stack integration | Cloud deployment**
 
----
+SweetRoots is a responsive web application developed as an Atlas School capstone for a Tulsa-area community client. It helps growers register sweet potato plants, record clippings, explore parent/child lineage, and share plants. The project demonstrates coordinated frontend/backend integration, authentication, cloud deployment, and data modeling.
 
-## 📖 About
+**Live application:** https://roots-on-route-66.vercel.app/  
+**API documentation (local):** http://127.0.0.1:8000/docs
 
-SweetRoots was built for the **Tulsa Farmers Market** community to track sweet potato plants and their clipping lineage. Users can get a clipping from a mother plant, grow it, take clippings from it, and track the entire family tree of any plant back to its original source. Plants can be created anonymously or linked to a registered user account.
+> **Project context:** This is a collaborative capstone, not a solo implementation. Project contributions include frontend/backend integration, cloud deployment and troubleshooting, application coordination, and documentation. Individual modules were developed collaboratively.
 
----
+## What the application does
 
-## ✨ Features
+- Manage grower profiles, plants, propagation status, and plant metadata.
+- Track clippings through parent/child relationships and calculated generations.
+- Browse searchable plant records and lineage history.
+- Sign in using Firebase Authentication; protected API endpoints verify Firebase ID tokens.
+- Share plant links and QR-based experiences; upload community images through Cloudinary.
+- Use a responsive, installable progressive-web-app interface with a service worker.
 
-- 🌱 **Plant Tracking** — Add, update, and delete sweet potato plants
-- 👨‍👦 **Lineage Tracking** — Track parent/child relationships between plants through clippings
-- 📊 **Generation Tracking** — Automatically calculates plant generation from its lineage
-- 🌿 **Growth Status** — Update plant status (Propagating, Growing, Flowering, Harvesting, Harvested)
-- 👤 **User Accounts** — Register, login, and manage your profile
-- 📸 **Profile Pictures** — Upload profile photos via Cloudinary
-- 🔍 **Search** — Search your garden by plant name, status, or parent ID
-- 📱 **QR Code Support** — Plants can be shared via QR code containing the plant URL
-- 🖼️ **Community Gallery** — Share photos and videos of your plants
-- 📥 **Data Export** — Export your garden data as JSON
-- 🌙 **Dark Mode** — Automatically adapts to system preference
-- 📱 **Mobile Responsive** — Works on all screen sizes
+## Technology
 
----
+| Layer | Implementation |
+| --- | --- |
+| User interface | HTML, CSS, vanilla JavaScript, responsive/PWA assets |
+| Authentication | Firebase Authentication (client SDK and server-side Admin verification) |
+| API | Python, FastAPI, Pydantic |
+| Application data | MongoDB / MongoDB Atlas with Motor async client |
+| Uploaded images | Cloudinary |
+| Deployment | Vercel (frontend), Google Cloud Run (FastAPI backend) |
+| Development | Git/GitHub, Docker, Python virtual environments |
 
-## 🛠️ Tech Stack
+## Architecture
 
-### Frontend
+The diagram reflects the **implemented** services and code paths. Vercel and Cloud Run are the hosted components; MongoDB Atlas, Firebase Authentication, and Cloudinary are external services.
 
-- HTML, CSS, JavaScript (Vanilla)
-- Font Awesome icons
-- AOS (Animate On Scroll)
-- Google Fonts (Inter, Playfair Display)
+~~~mermaid
+flowchart LR
+    U["Grower / browser"] --> FE["Responsive frontend + PWA<br/>Vercel / static JavaScript"]
+    FE -->|"Sign-in and identity"| FA["Firebase Authentication"]
+    FE -->|"REST / JSON; ID token for protected routes"| API["FastAPI backend<br/>Google Cloud Run"]
+    API -->|"Verify ID token"| FA
+    API -->|"Users, plants, lineage, media"| DB[("MongoDB / Atlas")]
+    API -->|"Authenticated image upload"| CL["Cloudinary"]
+    FE -->|"Image URLs"| CL
+~~~
 
-### Backend
+**Request path:** The browser signs in with Firebase, obtains an ID token, calls the FastAPI endpoints, and the backend verifies tokens on protected write/account routes. FastAPI routes invoke service modules, which use MongoDB collections; image uploads are forwarded to Cloudinary.
 
-- Python 3.10
-- FastAPI
-- Motor (async MongoDB driver)
-- MongoDB (local)
-- Pydantic v2
-- bcrypt (password hashing)
-- Cloudinary (image uploads)
-- Python-dotenv
+**Code organization**
 
----
+- **frontend/** — UI, authentication client initialization, PWA files, and browser-side API configuration.
+- **backend/app/routes/** — FastAPI endpoints for users, plants, media, and uploads.
+- **backend/app/services/** — user, plant, and media domain logic.
+- **backend/app/config/** and **backend/app/core/** — MongoDB, Firebase Admin, Cloudinary, and environment-based configuration.
+- **scripts/** — Docker health-check and Google Cloud Run deployment helpers.
 
-## 📁 Project Structure
-
-```
-roots-on-route-66/
-├── frontend/
-│   ├── sweetpotatoes.html
-│   ├── style.css
-│   └── script.js
-├── backend/
-│   └── app/
-│       ├── main.py
-│       ├── config/
-│       │   └── mongodb.py
-│       ├── models/
-│       │   ├── user.py
-│       │   └── plant.py
-│       ├── schemas/
-│       │   ├── user.py
-│       │   └── plant.py
-│       ├── services/
-│       │   ├── user_service.py
-│       │   ├── plant_service.py
-│       │   └── cloudinary_service.py
-│       ├── routes/
-│       │   ├── users.py
-│       │   └── plants.py
-│       └── utils/
-│           └── cloudinary.py
-├── requirements.txt
-└── .env
-```
-
----
-
-## 🚀 Getting Started
+## Run locally
 
 ### Prerequisites
 
-- Python 3.10
-- MongoDB installed locally
-- WSL (Windows Subsystem for Linux) if on Windows
-- A Cloudinary account (for profile picture uploads)
+- Python 3.12 (matches the backend Docker image).
+- MongoDB running locally **or** a MongoDB Atlas connection URI.
+- A Firebase project for sign-in; Firebase Admin service-account credentials for protected API calls.
+- A Cloudinary account for image uploads.
+- A browser and a terminal. Node.js is not required to serve the existing static frontend.
 
-### 1. Clone the repo
+### 1. Clone the repository
 
-```bash
-git clone https://github.com/your-username/roots-on-route-66.git
+~~~bash
+git clone https://github.com/NamesteSensei/roots-on-route-66.git
 cd roots-on-route-66
-```
+~~~
 
-### 2. Create and activate a virtual environment
+### 2. Configure and run the API
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
+~~~bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
+cp .env.example .env
+~~~
 
-### 4. Create your `.env` file
+On Windows PowerShell, create the environment with **py -3 -m venv .venv**, activate it with **.venv\Scripts\Activate.ps1**, and copy the example with **Copy-Item .env.example .env**.
 
-Create a `.env` file inside the `backend/` folder:
+Edit **backend/.env** before starting:
 
-```
-MONGODB_URI=mongodb://localhost:27017
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CLOUDINARY_UPLOAD_PRESET=your_upload_preset
-```
+- **MONGODB_URI** — replace the example credentials with your own Atlas URI, or set **mongodb://localhost:27017** for a running local MongoDB.
+- **MONGODB_DB_NAME** — database name; the example uses **roots_on_route_66**.
+- **ALLOWED_ORIGINS** — include **http://localhost:5500** and **http://127.0.0.1:5500** for the local static server.
+- **FIREBASE_SERVICE_ACCOUNT_JSON** — full, valid Firebase Admin service-account JSON on one environment-variable line. The example contains a placeholder, **not** a working credential.
+- **CLOUDINARY_CLOUD_NAME**, **CLOUDINARY_API_KEY**, **CLOUDINARY_API_SECRET** — needed for image uploads.
 
-### 5. Start MongoDB
+**Never commit backend/.env, real Firebase service-account JSON, MongoDB credentials, or Cloudinary secrets.** The browser-side Firebase configuration is a public client configuration, not a substitute for restrictive Firebase security rules.
 
-```bash
-sudo service mongod start
-```
+~~~bash
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+~~~
 
-### 6. Start the backend
+Check **http://127.0.0.1:8000/health** and **http://127.0.0.1:8000/docs**. The API creates MongoDB indexes at startup, so MongoDB must be reachable.
 
-```bash
-cd backend
-uvicorn app.main:app --reload --port 8001
-```
+### 3. Serve the frontend
 
-### 7. Open the frontend
+From a **second terminal**, in the repository root:
 
-Open `frontend/sweetpotatoes.html` directly in your browser or use the Live Server extension in VSCode.
+~~~bash
+python3 -m http.server 5500 --directory frontend
+~~~
 
----
+Open **http://localhost:5500**. The existing **frontend/config.js** points localhost/127.0.0.1 browsers at **http://127.0.0.1:8000**.
 
-## 📡 API Routes
+For sign-in on your own Firebase project, update **frontend/firebase-config.js** with that project's public web-app configuration and configure your local host as an authorized domain in Firebase. Do not place a Firebase Admin private key in frontend code.
 
-### Users
+### 4. Sanity checks
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/users/` | Register a new user |
-| POST | `/users/login` | Login |
-| GET | `/users/{user_id}` | Get user by ID |
-| PUT | `/users/{user_id}` | Update user |
-| PUT | `/users/{user_id}/password` | Change password |
-| DELETE | `/users/{user_id}` | Delete user |
-| GET | `/users/{user_id}/plants` | Get all plants for a user |
-| POST | `/users/{user_id}/profile-picture` | Upload profile picture |
+~~~bash
+# In the repository root, with Node.js installed:
+cd frontend
+npm ci
+npm run check
+~~~
 
-### Plants
+The frontend command above performs a JavaScript syntax check; it is **not** a complete automated test suite. For backend behavior, inspect OpenAPI at **/docs**, confirm database connectivity, and test authenticated create/edit flows with your own Firebase project.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/plants/` | Create a plant |
-| GET | `/plants/{plant_id}` | Get plant by ID |
-| PUT | `/plants/{plant_id}` | Update plant |
-| DELETE | `/plants/{plant_id}` | Delete plant |
-| POST | `/plants/{plant_id}/clipping` | Take a clipping from a plant |
-| POST | `/plants/{plant_id}/claim` | Claim an anonymous plant |
-| GET | `/plants/{plant_id}/lineage` | Get full lineage of a plant |
+## Selected API operations
 
----
+| Method | Route | Purpose |
+| --- | --- | --- |
+| GET | /health | API health response |
+| POST | /users/sync | Sync an authenticated Firebase user to MongoDB |
+| GET | /users/me | Get current authenticated profile |
+| GET | /plants/ | List plant records |
+| POST | /plants/ | Create a plant (requires authentication) |
+| POST | /plants/clippings | Create a child plant from a parent |
+| GET | /plants/{plant_id}/lineage | Retrieve parent lineage |
+| GET | /media/ | List community media records |
+| POST | /uploads/image | Upload an authenticated image to Cloudinary |
 
-## 🌱 How Plant Lineage Works
+See **backend/app/routes/** for the complete current route set.
 
-```
-Original Plant (Generation 0)
-        ↓
-  Clipping taken → Child Plant (Generation 1)
-        ↓
-  Clipping taken → Child Plant (Generation 2)
-```
+## Deployment notes
 
-Every plant stores a `parentPlantId` linking it to the plant it was clipped from. The `GET /plants/{plant_id}/lineage` endpoint traces all the way back to the original plant. Generation is automatically calculated when a clipping is created.
+- The frontend is hosted as static assets on **Vercel**; the API is configured for **Google Cloud Run**.
+- **scripts/deploy_backend_cloud_run.sh** deploys the FastAPI service when **PROJECT_ID** is set. It does **not** provision MongoDB, Firebase, Cloudinary credentials, or other required production environment variables.
+- Set backend environment variables in the cloud service using a secure secrets/configuration mechanism, and set **ALLOWED_ORIGINS** to the deployed frontend origin.
+- **frontend/config.js** currently contains the deployed Cloud Run API URL. Adjust it when deploying to a different project.
+- The Cloud Run deploy script permits public HTTP access; authorization is enforced on protected routes by the application. Review access controls, secrets handling, and CORS before operating your own deployment.
 
----
+## Current scope and limitations
 
-## 🔒 Security Notes
+This repository includes implemented Firebase-backed authentication, plant lineage, media endpoints, QR-sharing assets, and PWA support. Some placeholder files in **frontend/src/** and **backend/app/routes/** are **not active application features**. The project does not currently document a comprehensive automated test suite or a complete CI pipeline. Do not infer production guarantees from the health endpoint alone.
 
-- Passwords are hashed with bcrypt — never stored in plain text
-- CORS is currently open for development — restrict to your frontend URL before deploying
-- JWT authentication is not yet implemented — planned for a future release
-- Profile pictures are stored on Cloudinary — never on the server
+## Engineering discussion
 
----
+The project provides concrete examples of **integration across browser, API, authentication, database, and third-party media services**. Typical debugging paths span Firebase token verification, browser origin configuration, REST request/response contracts, MongoDB connectivity, and frontend/backend deployment configuration.
 
-## 🗺️ Roadmap
+## License and client ownership
 
-- [ ] JWT authentication
-- [ ] Admin dashboard
-- [ ] QR code generation per plant
-- [ ] Progress notes and media per plant stored in MongoDB
-- [ ] Community gallery backed by database
-- [ ] Plant care calendar
-- [ ] Deploy to production
-
----
-
-## 🏴‍☠️ Made with ❤️ for the Tulsa Farmers Market community
+This is a community-client capstone. No separate open-source license is included in the repository; public visibility alone does not grant reuse rights.
